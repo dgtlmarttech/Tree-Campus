@@ -333,7 +333,7 @@
                           <div className="flex items-center space-x-1 bg-amber-50 px-2 py-1 rounded">
                             <span className="text-amber-500 text-sm">★</span>
                             <span className="text-sm font-semibold text-gray-900">
-                              {course.rating || 'N/A'}
+                              {(course.rating || 4.5).toFixed(1)}
                             </span>
                           </div>
                         </div>

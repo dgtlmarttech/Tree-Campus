@@ -151,7 +151,7 @@ const Sidebar = () => {
       <aside
         className={`
           fixed top-0 md:top-[112px] left-0 
-          ${isMobileOpen ? 'z-[9999] translate-x-0' : 'z-[5000] -translate-x-full md:translate-x-0'}
+          ${isMobileOpen ? 'z-[10001] translate-x-0' : 'z-[5000] -translate-x-full md:translate-x-0'}
           bg-white border-r border-gray-200 shadow-2xl transition-transform duration-300
           w-64 h-screen md:h-[calc(100vh-112px)]
         `}

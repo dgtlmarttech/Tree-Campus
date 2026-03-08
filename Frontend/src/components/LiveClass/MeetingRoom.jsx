@@ -112,7 +112,7 @@ const MeetingRoom = () => {
   }, [id, navigate]);
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black flex flex-col meeting-room-wrapper">
+    <div className="fixed inset-0 z-[10001] bg-black flex flex-col meeting-room-wrapper">
       {/* Header */}
       <div className="p-4 bg-gray-900 flex justify-between items-center text-white">
         <h2 className="text-lg font-semibold text-teal-500">Tree Campus Live Session</h2>

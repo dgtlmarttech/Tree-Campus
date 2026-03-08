@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, Link } from 'react-router-dom';
 import api from '../services/api';
 import { FiCheck, FiChevronLeft, FiChevronRight, FiMenu, FiX, FiClock, FiBookOpen, FiChevronDown, FiFileText, FiDownload } from 'react-icons/fi';
@@ -6,8 +7,8 @@ import { FiCheck, FiChevronLeft, FiChevronRight, FiMenu, FiX, FiClock, FiBookOpe
 const PopupMessage = ({ isOpen, onClose, title, message }) => {
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4">
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
@@ -32,7 +33,8 @@ const PopupMessage = ({ isOpen, onClose, title, message }) => {
           Got it
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
@@ -40,9 +42,9 @@ const PopupMessage = ({ isOpen, onClose, title, message }) => {
 const NoteModal = ({ isOpen, onClose, title, content }) => {
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div 
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       <div 
@@ -53,7 +55,7 @@ const NoteModal = ({ isOpen, onClose, title, content }) => {
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-yellow-50 to-amber-50 flex-shrink-0">
           <div className="flex items-center space-x-2">
             <FiFileText className="text-amber-600" size={20} />
-            <h2 className="text-lg font-bold text-gray-900">{title || 'Note'}</h2>
+            <h2 className="text-lg font-extrabold text-amber-900 uppercase tracking-wide">{title || 'Lesson Study Notes'}</h2>
           </div>
           <button
             onClick={onClose}
@@ -80,7 +82,8 @@ const NoteModal = ({ isOpen, onClose, title, content }) => {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
@@ -95,9 +98,12 @@ const NoteButton = ({ title, content, onOpen }) => {
       }}
       className="w-full flex items-center space-x-2 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 rounded-lg p-2.5 transition-all group"
     >
-      <FiFileText className="text-yellow-700 flex-shrink-0" size={14} />
-      <span className="text-sm font-semibold text-yellow-800 truncate flex-1 text-left">{title || 'Note'}</span>
-      <span className="text-xs text-yellow-600 font-medium group-hover:text-yellow-800 whitespace-nowrap">View →</span>
+      <FiFileText className="text-yellow-700 flex-shrink-0" size={16} />
+      <div className="flex flex-col flex-1 min-w-0 text-left">
+        <span className="text-[10px] uppercase tracking-wider font-extrabold text-yellow-600 leading-none mb-0.5">Study Note</span>
+        <span className="text-sm font-bold text-yellow-900 truncate leading-tight">{title || 'General Note'}</span>
+      </div>
+      <span className="text-xs text-yellow-600 font-bold group-hover:text-yellow-800 whitespace-nowrap bg-yellow-100/50 px-2 py-1 rounded">View →</span>
     </button>
   );
 };
