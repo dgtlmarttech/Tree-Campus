@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { 
   FiBook, 
@@ -25,6 +26,18 @@ const StudentDashboard = () => {
   const [error, setError] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAllCourses, setShowAllCourses] = useState(false);
+  const navigate = useNavigate();
+
+  const joinClass = (classItem) => {
+    console.log('🔗 Joining class:', classItem._id, 'Status:', classItem.status);
+    if (classItem.platform === 'Zoom' && classItem.source === 'automated' && classItem._id) {
+      navigate(`/live-classes/join/${classItem._id}`);
+    } else if (classItem.link) {
+      window.open(classItem.link, '_blank');
+    } else {
+      toast.error('No class link available');
+    }
+  };
 
   useEffect(() => {
     fetchDashboardData();
@@ -417,7 +430,12 @@ const StudentDashboard = () => {
                 {upcomingLiveClasses.map((liveClass, index) => (
                   <div
                     key={liveClass._id || index}
-                    className="group flex items-center space-x-4 p-4 bg-gray-50 hover:bg-indigo-50 rounded-xl transition-all duration-300"
+                    onClick={() => liveClass.status === 'live' && joinClass(liveClass)}
+                    className={`group flex items-center space-x-4 p-4 bg-gray-50 rounded-xl transition-all duration-300 ${
+                      liveClass.status === 'live' 
+                        ? 'hover:bg-rose-50 cursor-pointer border border-transparent hover:border-rose-100' 
+                        : 'hover:bg-indigo-50'
+                    }`}
                   >
                     <div className="flex-shrink-0">
                       <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
@@ -434,9 +452,27 @@ const StudentDashboard = () => {
                       </div>
                     </div>
                     <div className="flex-shrink-0">
-                      <div className="px-3 py-1 bg-indigo-100 text-indigo-600 text-xs font-semibold rounded-full">
-                        Join
-                      </div>
+                      {liveClass.status === 'live' ? (
+                        <div className="flex flex-col items-center">
+                          <div className="px-3 py-1 bg-rose-100 text-rose-600 text-xs font-bold rounded-full animate-pulse flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 bg-rose-600 rounded-full animate-ping"></span>
+                            Live Now
+                          </div>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              joinClass(liveClass);
+                            }}
+                            className="mt-2 px-4 py-1.5 bg-rose-600 text-white text-xs font-bold rounded-lg hover:bg-rose-700 transition-colors shadow-sm cursor-pointer"
+                          >
+                            Join Now
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="px-3 py-1 bg-indigo-100 text-indigo-600 text-xs font-semibold rounded-full">
+                          Join Later
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

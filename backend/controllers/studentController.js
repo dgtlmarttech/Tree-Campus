@@ -224,8 +224,10 @@ export const getStudentDashboard = async (req, res) => {
 
     // Get upcoming live classes
     const upcomingLiveClasses = await LiveClass.find({
-      scheduledAt: { $gte: new Date() },
-      status: 'scheduled'
+      $or: [
+        { status: 'live' },
+        { status: 'scheduled', scheduledAt: { $gte: new Date() } }
+      ]
     })
       .populate('courseId', 'title')
       .sort('scheduledAt')
