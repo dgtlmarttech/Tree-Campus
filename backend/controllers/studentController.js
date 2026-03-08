@@ -68,38 +68,54 @@ export const getStudentDashboard = async (req, res) => {
           const sections = await Section.find({ courseId }).sort({ order: 1 });
           totalDays = sections.length;
 
+          let nextLessonId = null;
           if (progressDoc) {
              completedCount = progressDoc.completedLessons.length;
              realProgress = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
 
              // Figure out which day (section) the student is currently on
              const completedLessonIds = new Set(
-               progressDoc.completedLessons.map(cl => cl.lesson.toString())
+               progressDoc.completedLessons
+                 .filter(cl => cl && cl.lesson)
+                 .map(cl => cl.lesson.toString())
              );
 
+             console.log(`[Dashboard] Course ${courseId}: ${completedLessonIds.size} completed lessons found in Progress.`);
+
              for (let i = 0; i < sections.length; i++) {
-               const sectionLessons = await Lesson.find({ sectionId: sections[i]._id }).select('_id');
-               const allCompleted = sectionLessons.length > 0 && 
-                 sectionLessons.every(l => completedLessonIds.has(l._id.toString()));
+               const sectionLessons = await Lesson.find({ sectionId: sections[i]._id }).sort({ order: 1 }).select('_id');
+               const firstUncompleted = sectionLessons.find(l => !completedLessonIds.has(l._id.toString()));
                
-               if (!allCompleted) {
-                 currentDay = i + 1; // 1-indexed day number
+               if (firstUncompleted) {
+                 currentDay = i + 1; 
                  currentDayTitle = sections[i].title;
+                 nextLessonId = firstUncompleted._id;
+                 console.log(`[Dashboard] Found next lesson ${nextLessonId} in section "${currentDayTitle}"`);
                  break;
                }
              }
 
-             // If all sections completed, mark as last day
-             if (currentDay === null && sections.length > 0) {
+             // If all sections completed, or no nextLessonId found yet
+             if (!nextLessonId && sections.length > 0) {
+               console.log(`[Dashboard] No uncompleted lesson found in sections. Falling back to last lesson or overview.`);
                currentDay = sections.length;
                currentDayTitle = sections[sections.length - 1].title;
+               const lastSectionId = sections[sections.length - 1]._id;
+               const lastLesson = await Lesson.findOne({ sectionId: lastSectionId }).sort({ order: -1 }).select('_id');
+               if (lastLesson) nextLessonId = lastLesson._id;
              }
           } else {
-            // No progress yet, they are on Day 1
+            console.log(`[Dashboard] No progressDoc for course ${courseId}. Starting at Day 1.`);
             if (sections.length > 0) {
               currentDay = 1;
               currentDayTitle = sections[0].title;
+              const firstLesson = await Lesson.findOne({ sectionId: sections[0]._id }).sort({ order: 1 }).select('_id');
+              if (firstLesson) nextLessonId = firstLesson._id;
             }
+          }
+
+          if (nextLessonId) {
+             nextLessonId = nextLessonId.toString();
           }
 
           return {
@@ -109,6 +125,7 @@ export const getStudentDashboard = async (req, res) => {
             completedLessons: completedCount,
             currentDay,
             currentDayTitle,
+            nextLessonId,
             totalDays
           };
         } catch (err) {
@@ -120,6 +137,10 @@ export const getStudentDashboard = async (req, res) => {
 
     // Filter out errors
     const finalEnrollments = enrolledCoursesWithProgress.filter(e => e !== null);
+    console.log(`[Dashboard Debug] Student ${studentId} has ${finalEnrollments.length} enrollments.`);
+    if (finalEnrollments.length > 0) {
+        console.log(`[Dashboard Debug] First enrollment nextLessonId: ${finalEnrollments[0].nextLessonId}`);
+    }
 
     // Calculate overall statistics
     const totalEnrolledCourses = finalEnrollments.length;
@@ -164,7 +185,8 @@ export const getStudentDashboard = async (req, res) => {
         if (!lesson || !course) return null;
 
         return {
-            lessonId: item.lessonId,
+            lessonId: String(item.lessonId),
+            courseId: String(item.courseId),
             lessonTitle: lesson.title,
             courseTitle: course.title,
             completedAt: item.completedAt
@@ -172,24 +194,33 @@ export const getStudentDashboard = async (req, res) => {
     }));
 
     const finalRecentActivity = recentActivity.filter(Boolean);
+    console.log(`[Dashboard Debug] Sending ${finalRecentActivity.length} activities. First courseId: ${finalRecentActivity[0]?.courseId}`);
+    console.log(`[Dashboard] Sent ${finalRecentActivity.length} recent activities for student ${studentId}`);
+    if (finalRecentActivity.length > 0) {
+        console.log(`[Dashboard] Sample activity:`, JSON.stringify(finalRecentActivity[0]));
+    }
 
 
     // Course progress details for response
-    const courseProgress = finalEnrollments.map(enrollment => ({
-      courseId: enrollment.courseId._id,
-      title: enrollment.courseId.title,
-      thumbnail: enrollment.courseId.thumbnail,
-      category: enrollment.courseId.category,
-      instructor: enrollment.courseId.instructor,
-      duration: enrollment.courseId.duration,
-      progress: enrollment.progress,
-      totalLessons: enrollment.totalLessons,
-      completedLessons: enrollment.completedLessons,
-      currentDay: enrollment.currentDay,
-      currentDayTitle: enrollment.currentDayTitle,
-      totalDays: enrollment.totalDays,
-      enrolledAt: enrollment.enrolledAt
-    }));
+    const courseProgress = finalEnrollments.map(enrollment => {
+      console.log(`[Dashboard Map] Course: ${enrollment.courseId.title}, nextLessonId: ${enrollment.nextLessonId}`);
+      return {
+        courseId: enrollment.courseId._id,
+        title: enrollment.courseId.title,
+        thumbnail: enrollment.courseId.thumbnail,
+        category: enrollment.courseId.category,
+        instructor: enrollment.courseId.instructor,
+        duration: enrollment.courseId.duration,
+        progress: enrollment.progress,
+        totalLessons: enrollment.totalLessons,
+        completedLessons: enrollment.completedLessons,
+        currentDay: enrollment.currentDay,
+        currentDayTitle: enrollment.currentDayTitle,
+        totalDays: enrollment.totalDays,
+        nextLessonId: enrollment.nextLessonId,
+        enrolledAt: enrollment.enrolledAt
+      };
+    });
 
     // Get upcoming live classes
     const upcomingLiveClasses = await LiveClass.find({

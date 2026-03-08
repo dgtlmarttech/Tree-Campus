@@ -76,12 +76,13 @@ export const getOverview = async (req, res) => {
     const categories = await Course.distinct('category');
     const categoriesCount = categories.length;
 
-    // --- Average course rating ---
     const ratingAgg = await Course.aggregate([
       { $match: { rating: { $gt: 0 } } },
       { $group: { _id: null, avg: { $avg: '$rating' } } }
     ]);
     const avgRating = ratingAgg.length > 0 ? parseFloat(ratingAgg[0].avg.toFixed(1)) : 0;
+
+
 
     // --- Dynamic Course Stats (with accurate enrollment counts) ---
     const courseStats = await Enrollment.aggregate([
@@ -142,6 +143,7 @@ export const getOverview = async (req, res) => {
           completedClasses,
           totalEnrollments: courseStats.reduce((sum, s) => sum + s.count, 0),
           avgRating,
+
           categoriesCount
         },
         growth: {

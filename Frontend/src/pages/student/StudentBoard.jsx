@@ -365,9 +365,10 @@ const StudentDashboard = () => {
             {hasRecentActivity ? (
               <div className="space-y-4">
                 {safeRecentActivity.map((activity, index) => (
-                  <div
+                  <Link
                     key={index}
-                    className="group flex items-start space-x-4 p-4 bg-gray-50 hover:bg-indigo-50 rounded-xl transition-all duration-300 cursor-pointer"
+                    to={activity.courseId && activity.lessonId ? `/courses/${activity.courseId}/lesson/${activity.lessonId}` : '#'}
+                    className="group flex items-start space-x-4 p-4 bg-gray-50 hover:bg-indigo-50 rounded-xl transition-all duration-300"
                   >
                     <div className="flex-shrink-0">
                       <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
@@ -386,7 +387,7 @@ const StudentDashboard = () => {
                         <span>{activity.completedAt ? new Date(activity.completedAt).toLocaleDateString() : 'Recently'}</span>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             ) : (
@@ -690,7 +691,7 @@ const CourseProgressCard = ({ course, index }) => {
 
   return (
     <Link
-      to={`/courses/${courseId}`}
+      to={course.nextLessonId ? `/courses/${courseId}/lesson/${course.nextLessonId}` : `/courses/${courseId}`}
       className="block group"
     >
       <div 
