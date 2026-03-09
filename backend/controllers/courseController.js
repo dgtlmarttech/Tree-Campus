@@ -480,6 +480,15 @@ export const getCourseStructure = async (req, res) => {
       };
     });
 
+    // Resolve instructor if it's an ID
+    const mongoose = (await import('mongoose')).default;
+    if (course.instructor && mongoose.Types.ObjectId.isValid(course.instructor)) {
+      const instructorUser = await User.findById(course.instructor).select('name');
+      if (instructorUser) {
+        course.instructor = instructorUser.name;
+      }
+    }
+
     res.status(200).json({
       success: true,
       data: {

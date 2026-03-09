@@ -144,6 +144,7 @@ const CourseBuilder = () => {
         learningOutcomes: courseData.learningOutcomes || [],
         tags: courseData.tags || [],
         seriesKey: courseData.seriesKey || '',
+        instructor: courseData.instructor || '',
         certificateTitle: courseData.certificateTitle || '',
         seriesOrder: parseInt(courseData.seriesOrder) || 0
       };
@@ -1201,6 +1202,7 @@ const CourseEditModal = ({ course, onSave, onClose, onThumbnailUpload, uploading
     learningOutcomes: Array.isArray(course?.learningOutcomes) ? course.learningOutcomes : [],
     tags: Array.isArray(course?.tags) ? course.tags : [],
     seriesKey: course?.seriesKey || '',
+    instructor: course?.instructor || '',
     certificateTitle: course?.certificateTitle || '',
     seriesOrder: course?.seriesOrder || 0
   });
@@ -1342,6 +1344,20 @@ const handleThumbnailChange = async (e) => {
                 onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
                 required
                 placeholder="e.g., 8 weeks, 30 hours"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Instructor Name *
+              </label>
+              <input
+                type="text"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                value={formData.instructor}
+                onChange={(e) => setFormData({ ...formData, instructor: e.target.value })}
+                required
+                placeholder="e.g., Tree Campus"
               />
             </div>
 
