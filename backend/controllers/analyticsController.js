@@ -120,11 +120,38 @@ export const getOverview = async (req, res) => {
 
     // --- Enrollments growth calculation ---
     const enrollmentsThisMonth = await Enrollment.countDocuments({
-      createdAt: { $gte: startOfThisMonth }
+      enrolledAt: { $gte: startOfThisMonth }
     });
     const enrollmentsLastMonth = await Enrollment.countDocuments({
-      createdAt: { $gte: startOfLastMonth, $lt: startOfThisMonth }
+      enrolledAt: { $gte: startOfLastMonth, $lt: startOfThisMonth }
     });
+
+    // --- Peak Enrollment Month Calculation ---
+    const peakMonthlyEnrollment = await Enrollment.aggregate([
+      {
+        $group: {
+          _id: {
+            month: { $month: '$enrolledAt' },
+            year: { $year: '$enrolledAt' }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { count: -1 } },
+      { $limit: 1 }
+    ]);
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    let peakEnrollmentInfo = null;
+    if (peakMonthlyEnrollment.length > 0) {
+      const peak = peakMonthlyEnrollment[0];
+      peakEnrollmentInfo = {
+        month: monthNames[peak._id.month - 1],
+        year: peak._id.year,
+        count: peak.count,
+        formatted: `${monthNames[peak._id.month - 1]} ${peak._id.year}`
+      };
+    }
 
     res.status(200).json({
       success: true,
@@ -152,6 +179,7 @@ export const getOverview = async (req, res) => {
           blogs: calcGrowth(blogsThisMonth, blogsLastMonth),
           liveClasses: calcGrowth(liveClassesThisMonth, liveClassesLastMonth),
           enrollments: calcGrowth(enrollmentsThisMonth, enrollmentsLastMonth),
+          peakEnrollment: peakEnrollmentInfo,
           studentsThisMonth,
           coursesThisMonth,
           blogsThisMonth,

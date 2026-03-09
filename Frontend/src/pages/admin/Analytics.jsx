@@ -270,9 +270,14 @@ const Analytics = () => {
             </div>
             <div>
               <div className="text-2xl font-bold text-gray-900">
-                {Math.max(...enrollmentTrend.map(item => item.enrollments), 0)}
+                {(analyticsData.overview?.growth?.peakEnrollment?.count || 0).toLocaleString()}
               </div>
               <div className="text-sm text-gray-600">Peak Enrollments</div>
+              {analyticsData.overview?.growth?.peakEnrollment?.formatted && (
+                <div className="text-[10px] text-rose-500 font-medium">
+                  {analyticsData.overview.growth.peakEnrollment.formatted}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -363,7 +363,6 @@
                   { 
                     title: 'Total Enrollments', 
                     value: (s.totalEnrollments || 0).toLocaleString(), 
-                    change: g.enrollments || '0%',
                     icon: FiUsers,
                     color: 'blue'
                   },
