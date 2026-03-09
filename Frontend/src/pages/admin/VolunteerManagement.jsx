@@ -1,6 +1,6 @@
   import React, { useState, useEffect } from 'react';
   import axios from 'axios';
-  import { FiSearch, FiEye, FiCheck, FiX, FiRefreshCw, FiUsers } from 'react-icons/fi';
+  import { FiSearch, FiEye, FiCheck, FiX, FiRefreshCw, FiUsers, FiTrash2 } from 'react-icons/fi';
   import DashboardLayout from '../../components/Layout/DashboardLayout';
   import Modal from '../../components/common/Modal';
   import toast from 'react-hot-toast';
@@ -58,6 +58,18 @@
       }
     };
 
+    const handleDelete = async (id) => {
+      try {
+        await axios.delete(`${API_BASE_URL}/volunteer/${id}`);
+        await fetchVolunteers();
+        setConfirmModal(null);
+        toast.success('Volunteer application deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting volunteer:', error);
+        toast.error('Failed to delete volunteer application. Please try again.');
+      }
+    };
+
     const filterData = (data) => {
       let filtered = data;
       
@@ -109,6 +121,13 @@
             {volunteer.status.charAt(0).toUpperCase() + volunteer.status.slice(1)}
           </span>
         )}
+        <button
+          onClick={() => setConfirmModal({ id: volunteer._id, type: 'delete' })}
+          className="px-3 py-1 bg-gray-100 hover:bg-red-100 text-red-600 rounded-lg text-sm font-bold flex items-center gap-1 transition-colors"
+          title="Delete Permanently"
+        >
+          <FiTrash2 size={14} />
+        </button>
       </div>
     );
 
@@ -237,7 +256,9 @@
           {confirmModal && (
             <div>
               <p className="text-gray-600 mb-6">
-                Are you sure you want to {confirmModal.status} this volunteer application?
+                {confirmModal.type === 'delete' 
+                  ? 'Are you sure you want to PERMANENTLY delete this volunteer application? This action cannot be undone.'
+                  : `Are you sure you want to ${confirmModal.status} this volunteer application?`}
               </p>
               <div className="flex gap-3">
                 <button
@@ -247,9 +268,11 @@
                   Cancel
                 </button>
                 <button
-                  onClick={() => handleStatusUpdate(confirmModal.id, confirmModal.status)}
+                  onClick={() => confirmModal.type === 'delete' 
+                    ? handleDelete(confirmModal.id)
+                    : handleStatusUpdate(confirmModal.id, confirmModal.status)}
                   className={`flex-1 px-4 py-2 rounded-lg font-bold text-white ${
-                    confirmModal.status === 'approved' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
+                    confirmModal.type === 'delete' || confirmModal.status === 'rejected' ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
                   }`}
                 >
                   Confirm

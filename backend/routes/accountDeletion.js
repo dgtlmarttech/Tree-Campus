@@ -5,7 +5,8 @@ import {
   getAllDeletionRequests,
   getDeletionRequestById,
   updateDeletionStatus,
-  cancelDeletionRequest
+  cancelDeletionRequest,
+  deleteDeletionRequest
 } from '../controllers/accountDeletion.js';
 
 
@@ -28,5 +29,8 @@ router.patch('/:id/status', updateDeletionStatus);
 
 // DELETE /api/account-deletion-request/:id - Cancel request
 router.delete('/:id', cancelDeletionRequest);
+
+// DELETE /api/account-deletion-request/:id/permanent - Permanent Delete (Admin)
+router.delete('/:id/permanent', deleteDeletionRequest);
 
 export default router;

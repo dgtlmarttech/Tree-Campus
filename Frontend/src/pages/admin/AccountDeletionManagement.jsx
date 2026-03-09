@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FiSearch, FiEye, FiCheck, FiX, FiRefreshCw, FiUserX } from 'react-icons/fi';
+import { FiSearch, FiEye, FiCheck, FiX, FiRefreshCw, FiUserX, FiTrash2 } from 'react-icons/fi';
 import DashboardLayout from '../../components/Layout/DashboardLayout';
 import toast from 'react-hot-toast';
 
@@ -54,6 +54,18 @@ const AccountDeletionManagement = () => {
     } catch (error) {
       console.error('Error updating status:', error);
       toast.error('Failed to update status. Please try again.');
+    }
+  };
+
+  const handleDeletePermanent = async (id) => {
+    try {
+      await axios.delete(`${API_BASE_URL}/account-deletion-request/${id}/permanent`);
+      await fetchDeletions();
+      setConfirmModal(null);
+      toast.success('Account deletion request deleted permanently!');
+    } catch (error) {
+      console.error('Error deleting request:', error);
+      toast.error('Failed to delete request permanently. Please try again.');
     }
   };
 
@@ -113,6 +125,13 @@ const AccountDeletionManagement = () => {
           {deletion.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
         </span>
       )}
+      <button
+        onClick={() => setConfirmModal({ id: deletion._id, type: 'delete' })}
+        className="px-3 py-1 bg-gray-100 hover:bg-red-100 text-red-600 rounded-lg text-sm font-bold flex items-center gap-1 transition-colors"
+        title="Delete Permanently From DB"
+      >
+        <FiTrash2 size={14} />
+      </button>
     </div>
   );
 
@@ -241,7 +260,9 @@ const AccountDeletionManagement = () => {
           <div className="bg-white rounded-2xl p-6 max-w-md w-full">
             <h3 className="text-2xl font-bold mb-4">Confirm Action</h3>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to {confirmModal.status} this account deletion request?
+              {confirmModal.type === 'delete'
+                ? 'Are you sure you want to PERMANENTLY delete this request from the database? This action cannot be undone.'
+                : `Are you sure you want to ${confirmModal.status} this account deletion request?`}
             </p>
             <div className="flex gap-3">
               <button
@@ -251,9 +272,11 @@ const AccountDeletionManagement = () => {
                 Cancel
               </button>
               <button
-                onClick={() => handleStatusUpdate(confirmModal.id, confirmModal.status)}
+                onClick={() => confirmModal.type === 'delete'
+                  ? handleDeletePermanent(confirmModal.id)
+                  : handleStatusUpdate(confirmModal.id, confirmModal.status)}
                 className={`flex-1 px-4 py-2 rounded-lg font-bold text-white ${
-                  confirmModal.status === 'approved' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
+                  confirmModal.type === 'delete' || confirmModal.status === 'cancelled' ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
                 }`}
               >
                 Confirm

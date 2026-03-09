@@ -259,3 +259,26 @@ export const cancelDeletionRequest = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Permanently delete account deletion request (Admin)
+// @route   DELETE /api/account-deletion-request/:id/permanent
+// @access  Private/Admin
+export const deleteDeletionRequest = async (req, res, next) => {
+  try {
+    const request = await AccountDeletion.findByIdAndDelete(req.params.id);
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: 'Deletion request not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Deletion request deleted permanently from database'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
