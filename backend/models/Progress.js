@@ -72,17 +72,25 @@ progressSchema.index({ user: 1, course: 1 }, { unique: true });
 // Method to calculate progress
 progressSchema.methods.calculateProgress = async function() {
   const Course = mongoose.model('Course');
-  const course = await Course.findById(this.course).populate('lessons');
-  
-  if (!course || course.lessons.length === 0) {
+  const Lesson = mongoose.model('Lesson');
+
+  const course = await Course.findById(this.course);
+  if (!course) {
     this.overallProgress = 0;
     return 0;
   }
   
-  const totalLessons = course.lessons.length;
+  const totalLessons = await Lesson.countDocuments({ courseId: this.course });
+  if (totalLessons === 0) {
+    this.overallProgress = 0;
+    return 0;
+  }
+  
   const completedCount = this.completedLessons.length;
   
   this.overallProgress = Math.round((completedCount / totalLessons) * 100);
+  if (this.overallProgress > 100) this.overallProgress = 100;
+  
   await this.save();
   
   return this.overallProgress;

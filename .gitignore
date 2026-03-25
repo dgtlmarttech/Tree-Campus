@@ -141,3 +141,9 @@ backend/test.jsgate_meta.js
 # Python Scripts
 *.py
 **/*.py
+
+# Migration Files and Dumps
+migrated_users_report.csv
+treecampus
+users3.csv
+users_jan2026_current.csv
