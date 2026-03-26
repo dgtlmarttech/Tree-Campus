@@ -81,10 +81,12 @@ export const createLiveClass = async (req, res) => {
           duration: parseInt(duration) || 60,
           password: Math.random().toString(36).substring(2, 8),
           settings: {
-            host_video: true,
-            participant_video: true,
+            host_video: false,
+            participant_video: false,
             join_before_host: true,
-            mute_upon_entry: false
+            mute_upon_entry: false,
+            auto_recording: "cloud",
+            waiting_room: true
           }
         });
 
