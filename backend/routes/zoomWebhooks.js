@@ -48,29 +48,12 @@ router.post('/', async (req, res) => {
       return res.status(401).json({ error: 'Missing signature' });
     }
 
-    export function verifyWebhookSignature(req) {
-  const { ZOOM_WEBHOOK_SECRET_TOKEN } = process.env;
-
-  if (!ZOOM_WEBHOOK_SECRET_TOKEN) return true;
-
-  // 1. Extract values from the req object
-  const timestamp = req.headers['x-zm-request-timestamp'];
-  const signature = req.headers['x-zm-signature'];
-  const rawBody = req.body.toString();
-
-  if (!timestamp || !signature) return false;
-
-  // 2. Build the message string exactly as Zoom requires
-  const message = `v0:${timestamp}:${rawBody}`;
-
-  // 3. Hash and compare
-  const hash = crypto
-    .createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN)
-    .update(message)
-    .digest('hex');
-
-  return `v0=${hash}` === signature;
+// REPLACE OLD CHECK WITH THIS:
+if (!verifyWebhookSignature(req)) {
+  console.error('❌ Invalid webhook signature');
+  return res.status(401).json({ error: 'Invalid signature' });
 }
+
 
 
     // Handle different meeting events
