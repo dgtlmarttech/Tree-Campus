@@ -87,19 +87,32 @@ const MeetingRoom = () => {
         if (isMounted) setLoading(false);
       } catch (error) {
         clearTimeout(timeoutId);
-        console.error('❌ Zoom SDK Error:', error);
+        console.error('❌ Zoom SDK Detailed Error:', JSON.stringify(error, null, 2));
         
         if (isMounted) {
-          // Check for "on hold" state (meeting hasn't started yet)
-          if (error.type === 'IMPROPER_MEETING_STATE' || error.reason === 'on hold') {
-            console.log('ℹ️ Meeting is on hold. Waiting for host...');
+          // Identify "waiting" or "on hold" states - DO NOT kick them out
+          const isOnHold = error.reason === 'on hold' || 
+                           error.type === 'IMPROPER_MEETING_STATE' || 
+                           (error.message && error.message.toLowerCase().includes('on hold'));
+
+          if (isOnHold) {
+            console.log('ℹ️ Meeting is on hold/waiting room. Staying in container.');
             setLoading(false);
-            // We don't toast an error here, just let the Zoom UI show its "Waiting for Host" screen
+            // We just log it and stay on the page. The Zoom SDK UI will show the waiting room.
             return;
           }
 
-          toast.error(error.message || 'Failed to join meeting');
-          navigate('/live-classes');
+          // If it's a real error, show it but don't force navigate for at least 5 seconds
+          // so the user can see what happened.
+          toast.error(error.message || 'Connection error. Please wait or try again.');
+          setLoading(false); 
+          
+          // Only auto-navigate for critical failures that aren't "waiting"
+          if (error.type === 'INVALID_PARAMETERS' || error.type === 'NOT_AUTHENTICATED') {
+             setTimeout(() => {
+               if (isMounted) navigate('/live-classes');
+             }, 3000);
+          }
         }
       }
     };
