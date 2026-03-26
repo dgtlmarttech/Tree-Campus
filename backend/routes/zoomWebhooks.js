@@ -79,6 +79,7 @@ if (!verifyWebhookSignature(req)) {
         console.log('🗑️ Meeting deleted from Zoom:', meetingId);
         break;
 
+      /* 
       case 'meeting.created':
         try {
           // Check if already exists to prevent duplicates
@@ -109,6 +110,7 @@ if (!verifyWebhookSignature(req)) {
           console.error('❌ Error syncing created meeting:', err);
         }
         break;
+      */
 
       default:
         console.log('📬 Received Zoom webhook:', event.event);

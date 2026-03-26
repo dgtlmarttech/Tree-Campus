@@ -314,11 +314,12 @@ export const getMeetingSignature = async (req, res) => {
 async function updateMeetingStatuses() {
   try {
     const now = new Date();
-    // Classes that are scheduled but should be live
+    // Classes that are scheduled but should be live (ignore Zoom to prevent premature status changes)
     await LiveClass.updateMany(
       { 
         status: 'scheduled', 
-        scheduledAt: { $lte: now } 
+        scheduledAt: { $lte: now },
+        platform: { $ne: 'Zoom' }
       },
       { status: 'live' }
     );
