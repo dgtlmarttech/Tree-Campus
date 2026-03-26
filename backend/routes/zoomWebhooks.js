@@ -63,13 +63,25 @@ if (!verifyWebhookSignature(req)) {
 
     const meetingId = payload.object.id.toString();
 
+    // Check if this meeting exists in our database before processing
+    // This prevents manual/personal Zoom meetings from triggering logic on our site
+    const liveClass = await LiveClass.findOne({ meetingId });
+    
+    if (!liveClass) {
+      // console.log('⏭️ Ignoring webhook for non-platform meeting:', meetingId);
+      return res.status(200).send();
+    }
+
     switch (eventType) {
       case 'meeting.started':
+        // If a meeting starts (or restarts), always make it live
         await LiveClass.updateOne({ meetingId }, { status: 'live' });
-        console.log('▶️ Meeting started:', meetingId);
+        console.log('▶️ Meeting started (Live):', meetingId);
         break;
 
       case 'meeting.ended':
+        // Only mark as completed if it's truly the end or near the end of the scheduled time
+        // However, if the host explicitly ends it, we mark it as completed
         console.log('⏹️ Meeting ended webhook received for:', meetingId);
         await LiveClass.updateOne({ meetingId }, { status: 'completed' });
         break;

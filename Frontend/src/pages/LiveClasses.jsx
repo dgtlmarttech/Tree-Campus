@@ -90,24 +90,29 @@ const LiveClasses = () => {
 
       // Filter upcoming & live classes (show until they end)
       const upcoming = finalClasses.filter(liveClass => {
-        if (liveClass.status === 'completed' || liveClass.status === 'cancelled') return false;
-        
         const classDate = new Date(liveClass.scheduledAt);
         const durationMinutes = liveClass.duration || 60;
         const endDate = new Date(classDate.getTime() + durationMinutes * 60000);
+
+        // Show in upcoming if:
+        // 1. It is explicitly "live"
+        // 2. It is "scheduled" and time hasn't passed
+        // 3. It was "completed" early but the scheduled duration isn't over yet (for rejoin)
+        if (liveClass.status === 'live') return true;
+        if (liveClass.status === 'cancelled') return false; 
         
-        // Show if explicitly marked live OR if the scheduled time hasn't passed the end time
-        return liveClass.status === 'live' || endDate > now;
+        return endDate > now;
       }).sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt));
 
       const past = finalClasses.filter(liveClass => {
-        if (liveClass.status === 'completed' || liveClass.status === 'cancelled') return true;
-        
         const classDate = new Date(liveClass.scheduledAt);
         const durationMinutes = liveClass.duration || 60;
         const endDate = new Date(classDate.getTime() + durationMinutes * 60000);
         
-        // Show if status explicitly not live AND end time has passed
+        // Move to past ONLY if:
+        // 1. Explicitly "cancelled"
+        // 2. Status is not "live" AND time is genuinely up
+        if (liveClass.status === 'cancelled') return true;
         return liveClass.status !== 'live' && endDate <= now;
       }).sort((a, b) => new Date(b.scheduledAt) - new Date(a.scheduledAt)); // Past classes: newest first
 
