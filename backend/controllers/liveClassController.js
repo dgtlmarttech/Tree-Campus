@@ -168,25 +168,79 @@ export const createLiveClass = async (req, res) => {
 // @access  Private/Admin
 export const updateLiveClass = async (req, res) => {
   try {
-    const liveClass = await LiveClass.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      {
-        new: true,
-        runValidators: true
-      }
-    );
+    const { updateSeries } = req.body;
+    const oldClass = await LiveClass.findById(req.params.id);
 
-    if (!liveClass) {
+    if (!oldClass) {
       return res.status(404).json({
         success: false,
         message: 'Live class not found'
       });
     }
 
+    // Single class update
+    if (!updateSeries || !oldClass.seriesId) {
+      const liveClass = await LiveClass.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        {
+          new: true,
+          runValidators: true
+        }
+      );
+      return res.status(200).json({
+        success: true,
+        data: liveClass
+      });
+    }
+
+    // Series update
+    const oldDate = new Date(oldClass.scheduledAt);
+    const newDate = new Date(req.body.scheduledAt || oldClass.scheduledAt);
+    const timeDiff = newDate.getTime() - oldDate.getTime();
+
+    // Find all future classes in the series (including this one)
+    const seriesClasses = await LiveClass.find({
+      seriesId: oldClass.seriesId,
+      scheduledAt: { $gte: oldDate }
+    });
+
+    const updatedClasses = [];
+    for (const lc of seriesClasses) {
+      const currentScheduledAt = new Date(lc.scheduledAt);
+      const updatedScheduledAt = new Date(currentScheduledAt.getTime() + timeDiff);
+
+      // Prepare update data (keeping everything except ID and special fields)
+      const updateData = { ...req.body };
+      delete updateData._id;
+      delete updateData.seriesId;
+      updateData.scheduledAt = updatedScheduledAt;
+
+      // Update in Zoom if it's an automated Zoom meeting
+      if (lc.source === 'automated' && lc.meetingId) {
+        try {
+          await zoomApiRequest(`/meetings/${lc.meetingId}`, 'PATCH', {
+            topic: req.body.title || lc.title,
+            start_time: updatedScheduledAt.toISOString(),
+            duration: req.body.duration || lc.duration
+          });
+        } catch (zoomError) {
+          console.error(`Failed to update Zoom meeting ${lc.meetingId}:`, zoomError.message);
+        }
+      }
+
+      const updated = await LiveClass.findByIdAndUpdate(
+        lc._id,
+        updateData,
+        { new: true, runValidators: true }
+      );
+      updatedClasses.push(updated);
+    }
+
     res.status(200).json({
       success: true,
-      data: liveClass
+      count: updatedClasses.length,
+      data: updatedClasses.find(c => c._id.toString() === req.params.id) // Return the edited instance
     });
   } catch (error) {
     res.status(500).json({
@@ -314,12 +368,11 @@ export const getMeetingSignature = async (req, res) => {
 async function updateMeetingStatuses() {
   try {
     const now = new Date();
-    // Classes that are scheduled but should be live (ignore Zoom to prevent premature status changes)
+    // Classes that are scheduled but should be live (auto-start based on schedule)
     await LiveClass.updateMany(
       { 
         status: 'scheduled', 
-        scheduledAt: { $lte: now },
-        platform: { $ne: 'Zoom' }
+        scheduledAt: { $lte: now } 
       },
       { status: 'live' }
     );

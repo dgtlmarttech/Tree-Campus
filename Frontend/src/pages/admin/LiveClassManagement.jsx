@@ -16,13 +16,15 @@
       platform: 'Zoom',
       link: '',
       scheduledAt: '',
-      duration: 40,
+      duration: 60,
       instructor: '',
       maxParticipants: 100,
       password: '',
       autoGenerateZoom: false,
       isRecurring: false,
-      recurrenceEndDate: ''
+      recurrenceEndDate: '',
+      seriesId: null,
+      updateSeries: false
     });
     const [editingId, setEditingId] = useState(null);
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -89,7 +91,9 @@
         password: '',
         autoGenerateZoom: false,
         isRecurring: false,
-        recurrenceEndDate: ''
+        recurrenceEndDate: '',
+        seriesId: null,
+        updateSeries: false
       });
     };
 
@@ -114,7 +118,10 @@
         }
 
         if (editingId) {
-          await api.put(`/live-classes/${editingId}`, submitData);
+          await api.put(`/live-classes/${editingId}`, {
+            ...submitData,
+            updateSeries: formData.updateSeries
+          });
           toast.success('Live class updated successfully!');
         } else {
           await api.post('/live-classes', submitData);
@@ -133,9 +140,13 @@
       setEditingId(liveClass._id);
       
       // Convert UTC date from backend to local string for datetime-local input
-      const localDate = new Date(liveClass.scheduledAt);
-      const offset = localDate.getTimezoneOffset() * 60000;
-      const localISO = new Date(localDate.getTime() - offset).toISOString().slice(0, 16);
+      const date = new Date(liveClass.scheduledAt);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const localISO = `${year}-${month}-${day}T${hours}:${minutes}`;
 
       setFormData({
         title: liveClass.title,
@@ -149,7 +160,9 @@
         password: liveClass.password || '',
         autoGenerateZoom: liveClass.source === 'automated',
         isRecurring: false,
-        recurrenceEndDate: '' 
+        recurrenceEndDate: '',
+        seriesId: liveClass.seriesId,
+        updateSeries: false
       });
       setShowModal(true);
     };
@@ -609,6 +622,27 @@
                     </p>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Series Update Option */}
+            {editingId && formData.seriesId && (
+              <div className="p-4 bg-amber-50 rounded-lg border border-amber-100">
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="updateSeries"
+                    className="w-5 h-5 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
+                    checked={formData.updateSeries}
+                    onChange={(e) => setFormData({ ...formData, updateSeries: e.target.checked })}
+                  />
+                  <label htmlFor="updateSeries" className="font-medium text-amber-900 cursor-pointer">
+                    Apply changes to all future sessions in this series
+                    <p className="text-xs text-amber-700 font-normal mt-1">
+                      This will shift the start time of all upcoming sessions by the same amount.
+                    </p>
+                  </label>
+                </div>
               </div>
             )}
 

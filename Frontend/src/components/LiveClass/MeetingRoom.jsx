@@ -88,7 +88,16 @@ const MeetingRoom = () => {
       } catch (error) {
         clearTimeout(timeoutId);
         console.error('❌ Zoom SDK Error:', error);
+        
         if (isMounted) {
+          // Check for "on hold" state (meeting hasn't started yet)
+          if (error.type === 'IMPROPER_MEETING_STATE' || error.reason === 'on hold') {
+            console.log('ℹ️ Meeting is on hold. Waiting for host...');
+            setLoading(false);
+            // We don't toast an error here, just let the Zoom UI show its "Waiting for Host" screen
+            return;
+          }
+
           toast.error(error.message || 'Failed to join meeting');
           navigate('/live-classes');
         }
