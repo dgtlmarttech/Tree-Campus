@@ -70,8 +70,8 @@ if (!verifyWebhookSignature(req)) {
         break;
 
       case 'meeting.ended':
+        console.log('⏹️ Meeting ended webhook received for:', meetingId);
         await LiveClass.updateOne({ meetingId }, { status: 'completed' });
-        console.log('⏹️ Meeting ended:', meetingId);
         break;
 
       case 'meeting.deleted':

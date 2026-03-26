@@ -381,8 +381,12 @@ async function updateMeetingStatuses() {
       if (mc.scheduledAt) {
         const endTime = new Date(mc.scheduledAt.getTime() + (mc.duration || 60) * 60000);
         if (now > endTime) {
+          console.log(`⏹️ Timer: Marking meeting ${mc._id} as completed. EndTime: ${endTime.toISOString()}, Now: ${now.toISOString()}`);
           mc.status = 'completed';
           await mc.save();
+        } else {
+          // Debug: Log if it's close or if there's a status mismatch
+          console.log(`ℹ️ Timer: Meeting ${mc._id} is still live. EndTime: ${endTime.toISOString()}, Now: ${now.toISOString()}`);
         }
       }
     }
