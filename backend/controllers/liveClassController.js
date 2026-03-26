@@ -85,7 +85,7 @@ export const createLiveClass = async (req, res) => {
             participant_video: false,
             join_before_host: true,
             mute_upon_entry: false,
-            auto_recording: "cloud",
+            // auto_recording: "cloud",
             waiting_room: true
           }
         });
