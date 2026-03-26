@@ -67,7 +67,7 @@ export function generateSDKSignature(meetingNumber, role = 0) {
   }
 
   // Use seconds for timestamp
-  const iat = Math.floor(Date.now() / 1000) - 30;
+  const iat = Math.floor(Date.now() / 1000) - 60;
   const exp = iat + 60 * 60 * 2; // 2 hours expiry
 
   const header = { alg: 'HS256', typ: 'JWT' };
