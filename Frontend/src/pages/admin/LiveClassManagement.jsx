@@ -16,7 +16,7 @@
       platform: 'Zoom',
       link: '',
       scheduledAt: '',
-      duration: 60,
+      duration: 40,
       instructor: '',
       maxParticipants: 100,
       password: '',
@@ -374,15 +374,22 @@
                   {/* Action Buttons */}
                   <div className="p-4 border-t border-gray-200 bg-gray-50">
                     <div className="flex space-x-2">
-                      <a 
-                        href={liveClass.link} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="flex-1 bg-blue-600 text-white py-2 px-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 text-sm"
-                      >
-                        <FiExternalLink className="w-3 h-3" />
-                        <span>{isLive ? 'Join Live Now' : isUpcoming ? 'Join Class' : 'View Recording'}</span>
-                      </a>
+                      {(status === 'completed' || status === 'cancelled') ? (
+                        <div className="flex-1 bg-gray-100 text-gray-500 py-2 px-3 rounded-lg flex items-center justify-center space-x-2 text-sm cursor-not-allowed border border-gray-200">
+                          {status === 'cancelled' ? <FiX className="w-3 h-3" /> : <FiCheckCircle className="w-3 h-3" />}
+                          <span>{status === 'cancelled' ? 'Class Cancelled' : 'Class Completed'}</span>
+                        </div>
+                      ) : (
+                        <a 
+                          href={liveClass.link} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="flex-1 bg-blue-600 text-white py-2 px-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 text-sm"
+                        >
+                          <FiExternalLink className="w-3 h-3" />
+                          <span>{isLive ? 'Join Live Now' : 'Join Class'}</span>
+                        </a>
+                      )}
                       <button 
                         className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         onClick={() => handleDelete(liveClass._id, liveClass.seriesId)}

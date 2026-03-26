@@ -100,15 +100,29 @@ export function generateSDKSignature(meetingNumber, role = 0) {
 /**
  * Verify webhook signature from Zoom
  */
-export function verifyWebhookSignature(payload, receivedSignature) {
+/**
+ * Verify webhook signature from Zoom
+ * req: The full Express request object
+ */
+export function verifyWebhookSignature(req) {
   const { ZOOM_WEBHOOK_SECRET_TOKEN } = process.env;
 
   if (!ZOOM_WEBHOOK_SECRET_TOKEN) {
     console.warn('Webhook secret token not configured - skipping verification');
-    return true; // Allow in development
+    return true; 
   }
 
-  const message = `v0:${payload}`;
+  // 1. Get the timestamp and signature from headers
+  const timestamp = req.headers['x-zm-request-timestamp'];
+  const receivedSignature = req.headers['x-zm-signature'];
+  
+  // 2. Get the raw body string
+  const rawBody = req.body.toString();
+
+  // 3. Construct the message exactly as Zoom expects: v0:timestamp:payload
+  const message = `v0:${timestamp}:${rawBody}`;
+
+  // 4. Create the HMAC SHA256 hash
   const hashForVerify = crypto
     .createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN)
     .update(message)
@@ -116,8 +130,10 @@ export function verifyWebhookSignature(payload, receivedSignature) {
 
   const computedSignature = `v0=${hashForVerify}`;
 
+  // 5. Compare
   return computedSignature === receivedSignature;
 }
+
 
 /**
  * Make authenticated request to Zoom API

@@ -90,6 +90,8 @@ const LiveClasses = () => {
 
       // Filter upcoming & live classes (show until they end)
       const upcoming = finalClasses.filter(liveClass => {
+        if (liveClass.status === 'completed' || liveClass.status === 'cancelled') return false;
+        
         const classDate = new Date(liveClass.scheduledAt);
         const durationMinutes = liveClass.duration || 60;
         const endDate = new Date(classDate.getTime() + durationMinutes * 60000);
@@ -99,6 +101,8 @@ const LiveClasses = () => {
       }).sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt));
 
       const past = finalClasses.filter(liveClass => {
+        if (liveClass.status === 'completed' || liveClass.status === 'cancelled') return true;
+        
         const classDate = new Date(liveClass.scheduledAt);
         const durationMinutes = liveClass.duration || 60;
         const endDate = new Date(classDate.getTime() + durationMinutes * 60000);
