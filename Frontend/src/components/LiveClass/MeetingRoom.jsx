@@ -102,13 +102,22 @@ const MeetingRoom = () => {
             return;
           }
 
+          // Identify "already in progress" conflict
+          if (error.errorCode === 3000 || (error.reason && error.reason.includes('other meetings in progress'))) {
+            toast.error('Another Zoom meeting is already in progress. Please end it before joining this one. Redirecting...', { duration: 6000 });
+            setLoading(false);
+            setTimeout(() => {
+               if (isMounted) navigate('/live-classes');
+            }, 5000);
+            return;
+          }
+
           // If it's a real error, show it but don't force navigate for at least 5 seconds
-          // so the user can see what happened.
           toast.error(error.message || 'Connection error. Please wait or try again.');
           setLoading(false); 
           
-          // Only auto-navigate for critical failures that aren't "waiting"
-          if (error.type === 'INVALID_PARAMETERS' || error.type === 'NOT_AUTHENTICATED') {
+          // Only auto-navigate for critical failures that aren't "waiting" or "conflict"
+          if (error.type === 'INVALID_PARAMETERS' || error.type === 'NOT_AUTHENTICATED' || error.type === 'JOIN_MEETING_FAILED') {
              setTimeout(() => {
                if (isMounted) navigate('/live-classes');
              }, 3000);
@@ -123,13 +132,21 @@ const MeetingRoom = () => {
 
     return () => {
       isMounted = false;
+      console.log('🧹 Cleaning up MeetingRoom...');
       if (clientRef.current) {
         try {
-          clientRef.current.leaveMeeting();
+          // Some versions of the SDK prefer leave() over leaveMeeting()
+          if (typeof clientRef.current.leave === 'function') {
+            clientRef.current.leave();
+          } else if (typeof clientRef.current.leaveMeeting === 'function') {
+            clientRef.current.leaveMeeting();
+          }
         } catch (e) {
           console.warn('Cleanup error:', e);
         }
+        clientRef.current = null;
       }
+      isInitialized.current = false;
     };
   }, [id, navigate]);
 

@@ -266,8 +266,12 @@ export const deleteLiveClass = async (req, res) => {
     if (liveClass.source === 'automated' && liveClass.meetingId) {
       try {
         await zoomApiRequest(`/meetings/${liveClass.meetingId}`, 'DELETE');
-      } catch (error) {
-        console.error('Error deleting from Zoom:', error.message);
+      } catch (zoomError) {
+        if (zoomError.response?.status === 404) {
+           console.log(`ℹ️ Meeting ${liveClass.meetingId} already deleted from Zoom.`);
+        } else {
+           console.error('Error deleting from Zoom:', zoomError.message);
+        }
       }
     }
 
