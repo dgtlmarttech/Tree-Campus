@@ -25,36 +25,21 @@ router.get('/', (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    // Get raw body (already parsed by express.raw in server.js)
     const rawBody = req.body.toString();
-    
-    // Parse the JSON event
     const event = JSON.parse(rawBody);
 
-    // IMPORTANT: Handle URL validation FIRST (before signature verification)
-    // Zoom sends this to verify your endpoint during setup
-    // This request does NOT include a signature
+    // 1. Handle URL validation FIRST
     if (event.event === 'endpoint.url_validation') {
-      console.log('🔍 Zoom URL validation request received');
-      
-      if (!process.env.ZOOM_WEBHOOK_SECRET_TOKEN) {
-        console.error('❌ ZOOM_WEBHOOK_SECRET_TOKEN not set in environment');
-        return res.status(500).json({ error: 'Server configuration error' });
-      }
-
       const hashForValidate = crypto
         .createHmac('sha256', process.env.ZOOM_WEBHOOK_SECRET_TOKEN)
         .update(event.payload.plainToken)
         .digest('hex');
-
-      console.log('✅ Responding to validation with encrypted token');
       
       return res.status(200).json({
         plainToken: event.payload.plainToken,
         encryptedToken: hashForValidate
       });
     }
-
     // For all other events, verify the webhook signature
     const signature = req.headers['x-zm-signature'];
     
@@ -123,13 +108,13 @@ router.post('/', async (req, res) => {
         break;
 
       default:
-        console.log('ℹ️ Unhandled event type:', eventType);
+        console.log('📬 Received Zoom webhook:', event.event);
     }
 
-    res.status(200).json({ success: true });
-  } catch (error) {
-    console.error('❌ Webhook processing error:', error);
-    res.status(500).json({ error: 'Webhook processing failed' });
+    res.status(200).send();
+  } catch (err) {
+    console.error('Webhook Error:', err);
+    res.status(500).send();
   }
 });
 
