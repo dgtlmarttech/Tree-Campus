@@ -98,12 +98,16 @@ const verifyOTP = async (req, res, next) => {
     if (user.isVerified) return res.status(400).json({ success: false, message: 'User already verified' });
 
     // Check expiry
-    if (!user.otpExpiry || user.otpExpiry < Date.now()) {
+    const now = Date.now();
+    const expiry = user.otpExpiry ? new Date(user.otpExpiry).getTime() : 0;
+    
+    if (expiry < now) {
+      console.log(`❌ [DEBUG] Signup OTP Expired: Expiry=${expiry}, Now=${now}`);
       return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
     }
 
     // Dual Verification Logic
-    const isLocalValid = user.otp && user.otp === otp && user.otpExpiry > Date.now();
+    const isLocalValid = user.otp && user.otp === otp && expiry > now;
     
     if (isLocalValid) {
       console.log(`✅ [DEBUG] Local OTP verification successful for ${email}`);
@@ -418,8 +422,12 @@ const resetPassword = async (req, res, next) => {
     const user = await User.findOne(query).select('+otp +otpExpiry +password +verificationId');
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    // ✅ FIX 3: Check expiry first
-    if (user.otpExpiry < Date.now()) {
+    // ✅ FIX 3: Check expiry first (EXPLICIT COMPARISON)
+    const now = Date.now();
+    const expiry = user.otpExpiry ? new Date(user.otpExpiry).getTime() : 0;
+
+    if (expiry < now) {
+      console.log(`❌ [DEBUG] ResetPwd OTP Expired: Expiry=${expiry}, Now=${now}`);
       return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
     }
 
