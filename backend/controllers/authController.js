@@ -329,10 +329,10 @@ const forgotPassword = async (req, res, next) => {
 
     // ✅ 3. Determine which phone to send OTP to
     let targetPhone = user.phone;
-
     const hasRealPhone = !isPlaceholderPhone(targetPhone);
 
     if (hasRealPhone) {
+      // --- Case A: Regular user with a verified phone on file ---
       if (!phone) {
         return res.status(400).json({
           success: false,
@@ -349,7 +349,8 @@ const forgotPassword = async (req, res, next) => {
           message: 'The phone number provided does not match the one registered to this account.',
         });
       }
-      // B. Migrated/Legacy/Placeholder User: No real phone on file yet
+    } else {
+      // --- Case B: Migrated/Legacy/Placeholder User: No real phone on file yet ---
       if (phone && /^\d{10}$/.test(phone)) {
         // ✅ NEW: Check if this new phone is already taken by another user's "Real Phone"
         const phoneTaken = await User.findOne({ phone, _id: { $ne: user._id } });
@@ -360,15 +361,15 @@ const forgotPassword = async (req, res, next) => {
           });
         }
 
+        // Use the new valid phone provided in the request
         targetPhone = phone;
         console.log(`🔗 ForgotPwd: Potential phone link ${phone} for placeholder user ${user.email}`);
-      } else if (phone) {
-          return res.status(400).json({ success: false, message: 'Please provide a valid 10-digit phone number' });
       } else {
+        // If it's a placeholder user, we MUST have a valid new phone from the request
         return res.status(400).json({
           success: false,
           errorCode: 'PHONE_REQUIRED',
-          message: 'Please provide a phone number to receive an SMS OTP.',
+          message: 'Please provide a valid 10-digit phone number to receive an SMS OTP.',
         });
       }
     }
