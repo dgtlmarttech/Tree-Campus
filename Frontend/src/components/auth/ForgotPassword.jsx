@@ -11,7 +11,24 @@ const ForgotPassword = () => {
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [timer, setTimer] = useState(0); // ✅ New: Standardized 60s timer
+  const [canResend, setCanResend] = useState(true);
   const navigate = useNavigate();
+
+  // 60s Cooldown Timer logic
+  useEffect(() => {
+    let interval = null;
+    if (timer > 0) {
+      setCanResend(false);
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    } else {
+      setCanResend(true);
+      if (interval) clearInterval(interval);
+    }
+    return () => { if (interval) clearInterval(interval); };
+  }, [timer]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,13 +42,16 @@ const ForgotPassword = () => {
       const res = await axios.post("/auth/forgot-password", payload);
       setMessage(res.data.message);
     
+      // ✅ Start 60s cooldown
+      setTimer(60);
+      
       // ✅ Navigate to reset password page with both identifiers if available
       setTimeout(() => {
         const params = new URLSearchParams();
         if (email) params.append("email", email);
         if (phone) params.append("phone", phone);
         navigate(`/reset-password?${params.toString()}`);
-      }, 1500);
+      }, 1800);
 
     } catch (err) {
       setMessage(err.response?.data?.message || "Something went wrong");
@@ -60,8 +80,8 @@ const ForgotPassword = () => {
             </h2>
             <p className="text-sm sm:text-base text-gray-600">
               {prefilledEmail 
-                ? `To reset your password for ${prefilledEmail}, please enter your registered Phone Number to receive a WhatsApp OTP.`
-                : "Enter your registered Phone Number and we'll send you an OTP on WhatsApp to reset your password"}
+                ? `To reset your password for ${prefilledEmail}, please enter your registered Phone Number to receive an SMS OTP.`
+                : "Enter your registered Phone Number and we'll send you an OTP via SMS to reset your password"}
             </p>
           </div>
 
@@ -73,7 +93,7 @@ const ForgotPassword = () => {
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Email Address
+                Email Address (Optional if phone is registered)
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -86,8 +106,8 @@ const ForgotPassword = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your registered email"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
+                  placeholder="e.g. user@email.com"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#14B8A6] focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                 />
               </div>
             </div>
@@ -98,7 +118,7 @@ const ForgotPassword = () => {
                 htmlFor="phone"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Phone Number (for OTP)
+                Phone Number (where you'll receive OTP)
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -114,15 +134,15 @@ const ForgotPassword = () => {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                   placeholder="Enter 10-digit phone number"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#14B8A6] focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">We'll send a WhatsApp OTP to this number</p>
+              <p className="text-xs text-gray-500 mt-1">We'll send a 6-digit OTP to this number</p>
             </div>
 
             <button
               onClick={handleSubmit}
-              disabled={isLoading || !phone || phone.length !== 10}
+              disabled={isLoading || !phone || phone.length !== 10 || !canResend}
               className="w-full bg-[#115E59] hover:bg-[#0F766E] text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg hover:shadow-xl text-sm sm:text-base"
             >
               {isLoading ? (
@@ -147,10 +167,12 @@ const ForgotPassword = () => {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Sending OTP...
+                  Requesting OTP...
                 </span>
+              ) : !canResend ? (
+                `Resend available in ${timer}s`
               ) : (
-                "Send OTP"
+                "Request OTP"
               )}
             </button>
           </div>
@@ -184,7 +206,9 @@ const ForgotPassword = () => {
                     />
                   )}
                 </svg>
-                {message}
+                {message === "Phone or email not match" ? (
+                  <span><strong>Error:</strong> Phone or email match not found in our records.</span>
+                ) : message}
               </p>
             </div>
           )}

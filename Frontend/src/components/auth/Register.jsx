@@ -27,7 +27,7 @@ const translations = {
     passwordTooShort: 'Password must be at least 6 characters',
     passwordMismatch: 'Passwords do not match',
     registrationFailed: 'Registration failed. Please try again.',
-    otpMessage: 'Please check your WhatsApp for OTP',
+    otpMessage: 'Please check your phone for SMS OTP',
     welcomeTitle: 'Welcome to TreeCampus',
     welcomeSubtitle: 'Join our community and unlock unlimited learning opportunities',
     feature1: '1000+ Courses Available',
@@ -61,7 +61,7 @@ const translations = {
     passwordTooShort: 'पासवर्ड कम से कम 6 अक्षर का होना चाहिए',
     passwordMismatch: 'पासवर्ड मेल नहीं खाते',
     registrationFailed: 'रजिस्ट्रेशन विफल रहा। कृपया पुनः प्रयास करें।',
-    otpMessage: 'कृपया OTP के लिए अपना व्हाट्सएप चेक करें',
+    otpMessage: 'कृपया SMS OTP के लिए अपना फोन चेक करें',
     welcomeTitle: 'LMS में आपका स्वागत है',
     welcomeSubtitle: 'हमारे समुदाय में शामिल हों और असीमित सीखने के अवसर प्राप्त करें',
     feature1: '1000+ कोर्स उपलब्ध',
@@ -234,17 +234,17 @@ const Register = () => {
         <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 rounded-2xl overflow-hidden shadow-2xl bg-white">
           
           {/* Left Panel - Register Form (appears first on mobile) */}
-          <div className="p-8 lg:p-12 flex flex-col justify-center order-2 md:order-1">
-            <div className="text-center mb-8">
-              <div className="flex justify-center mb-4">
-                <svg className="w-16 h-16" style={{ color: '#14B8A6' }} fill="currentColor" viewBox="0 0 24 24">
+          <div className="p-6 sm:p-8 lg:p-12 flex flex-col justify-center order-2 md:order-1">
+            <div className="text-left mb-6">
+              <div className="flex justify-start mb-3">
+                <svg className="w-12 h-12" style={{ color: '#14B8A6' }} fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/>
                 </svg>
               </div>
-              <h2 className="text-3xl font-bold text-gray-900">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
                 {t.title}
               </h2>
-              <p className="mt-2 text-sm text-gray-600">
+              <p className="mt-1 text-sm text-gray-600">
                 {t.subtitle}
               </p>
             </div>
@@ -405,7 +405,7 @@ const Register = () => {
           </div>
 
           {/* Right Panel - Welcome Section (appears second on mobile) */}
-          <div className="p-8 lg:p-12 text-white flex flex-col justify-center order-1 md:order-2" style={{ background: 'linear-gradient(135deg, #14B8A6 0%, #0F766E 100%)' }}>
+          <div className="p-8 lg:p-12 text-white hidden md:flex flex-col justify-center order-1 md:order-2" style={{ background: 'linear-gradient(135deg, #14B8A6 0%, #0F766E 100%)' }}>
             <div className="text-center">
               <h2 className="text-3xl font-bold mb-4">
                 {t.welcomeTitle}

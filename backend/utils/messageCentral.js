@@ -45,23 +45,24 @@ const getAuthToken = async () => {
 };
 
 /**
- * Send WhatsApp OTP
+ * Send SMS OTP
  * @param {string} mobileNumber 10-digit mobile number
  */
-export const sendWhatsAppOTP = async (mobileNumber) => {
+export const sendSMSOTP = async (mobileNumber) => {
   try {
     const authToken = await getAuthToken();
     const url = `${BASE_URL}/verification/v3/send`;
     
-    // User's working code passes params in query string, null body
+    // We pass params in the query string as before
     const params = new URLSearchParams({
       countryCode: COUNTRY_CODE,
       customerId: CUSTOMER_ID,
-      flowType: 'WHATSAPP',
+      flowType: 'SMS',
       mobileNumber: mobileNumber,
       otpLength: '6',
     });
 
+    console.log(`🚀 [DEBUG] Sending SMS OTP to ${mobileNumber} via Message Central v3...`);
     const response = await fetch(`${url}?${params.toString()}`, {
       method: 'POST',
       headers: {
@@ -69,33 +70,51 @@ export const sendWhatsAppOTP = async (mobileNumber) => {
       }
     });
 
-    const data = await response.json();
+    console.log(`📡 [DEBUG] Message Central Response Status: ${response.status} ${response.statusText}`);
+
+    const text = await response.text();
+    let data = {};
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error('❌ Failed to parse Message Central response:', text);
+        throw new Error('Our SMS service returned an invalid response. Please try again later.');
+      }
+    } else {
+      // If text is empty, check if status was 200 (unlikely for empty body but possible)
+      if (response.ok) {
+        throw new Error(`SMS service returned an empty success response (Status: ${response.status}). This often means your account balance is low or SMS templates are not approved.`);
+      }
+      throw new Error(`SMS service connection failed (Status: ${response.status}). Please try again.`);
+    }
 
     if (data && (data.responseCode === 200 || data.status === 200) && data.data) {
-      console.log(`📱 [DEBUG] WhatsApp OTP request successful. Mobile: ${mobileNumber}, VerificationId: ${data.data.verificationId}`);
+      console.log(`📱 [DEBUG] SMS OTP request successful. Mobile: ${mobileNumber}, VerificationId: ${data.data.verificationId}`);
       return {
         success: true,
         verificationId: data.data.verificationId,
-        message: 'OTP sent via WhatsApp'
+        message: 'OTP sent via SMS'
       };
     }
     
-    console.error('❌ Message Central Send OTP Error - Full Response:', JSON.stringify(data, null, 2));
-    throw new Error(data.message || data.error || 'Failed to send WhatsApp OTP');
+    console.error('❌ Message Central Send SMS Failure:', JSON.stringify(data, null, 2));
+    throw new Error(data.message || data.error || 'The SMS service could not send the code right now.');
   } catch (error) {
-    console.error('❌ Send WhatsApp OTP Error:', error.message);
-    throw error;
+    console.error('❌ Send SMS OTP Error:', error.message);
+    throw new Error(error.message);
   }
 };
 
 /**
- * Validate WhatsApp OTP
+ * Validate SMS OTP
  * @param {string} verificationId The ID returned by sendOtp
  * @param {string} otp The 6-digit OTP entered by user
  */
 export const validateOTP = async (verificationId, otp) => {
   try {
     const authToken = await getAuthToken();
+    // Using v3 validation with Query Params (matching what worked for send)
     const url = `${BASE_URL}/verification/v3/validateOtp`;
     
     const params = new URLSearchParams({
@@ -105,26 +124,36 @@ export const validateOTP = async (verificationId, otp) => {
         code: otp,
     });
 
-    // User's code uses GET for validation
+    console.log(`🔍 [DEBUG] Validating SMS OTP for VerificationID: ${verificationId}...`);
     const response = await fetch(`${url}?${params.toString()}`, {
-      method: 'GET',
+      method: 'POST',
       headers: {
         'authToken': authToken,
       }
     });
 
-    const data = await response.json();
+    const text = await response.text();
+    let data = {};
+    if (text) {
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error('❌ Failed to parse validation response:', text);
+        }
+    }
 
     if (data && (data.responseCode === 200 || data.status === 200)) {
+      console.log(`✅ [DEBUG] SMS OTP validated successfully.`);
       return {
         success: true,
         message: 'OTP validated successfully'
       };
     }
     
+    console.error('❌ Validation Failed:', JSON.stringify(data, null, 2));
     throw new Error(data.message || data.error || 'Invalid or expired OTP');
   } catch (error) {
-    console.error('❌ Validate WhatsApp OTP Error:', error.message);
+    console.error('❌ Validate SMS OTP Error:', error.message);
     throw error;
   }
 };

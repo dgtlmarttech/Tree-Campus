@@ -28,7 +28,9 @@ const userSchema = new mongoose.Schema(
     if (!v) {
       return this.googleId ? true : false;
     }
+    if (v === '0000000000') return true; // allow stripped phone placeholder
     if (v.startsWith('wp_')) return true; // allow WordPress migrated users
+    if (v.startsWith('unlinked_')) return true; // allow unlinked users
     return v.length === 10;
   },
   message: "Phone number must be 10 digits"
@@ -74,11 +76,14 @@ const userSchema = new mongoose.Schema(
     ],
 
     isVerified: { type: Boolean, default: false },
+    isPhoneVerified: { type: Boolean, default: false },
     isWpMigrated: { type: Boolean, default: false },
 
     otp: { type: String, select: false },
     otpExpiry: { type: Date, select: false },
     verificationId: { type: String, select: false },
+    emailOtp: { type: String, select: false },
+    emailOtpExpiry: { type: Date, select: false },
 
     resetPasswordToken: { type: String, select: false },
     resetPasswordExpiry: { type: Date, select: false },
@@ -100,7 +105,7 @@ userSchema.index({ email: 1 }, { unique: true, sparse: true });
 userSchema.index({ phone: 1 }, { 
   unique: true, 
   partialFilterExpression: { 
-    phone: { $type: "string" },
+    phone: { $type: "string", $nin: ["0000000000"] },
     isWpMigrated: { $ne: true }  // wp_ users skip unique check
   } 
 });

@@ -14,7 +14,7 @@ const VerifyOTP = () => {
   const [resending, setResending] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [verificationSuccess, setVerificationSuccess] = useState(false);
-  const [timer, setTimer] = useState(30);
+  const [timer, setTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const [isEditingPhone, setIsEditingPhone] = useState(false);
   const [currentPhone, setCurrentPhone] = useState(location.state?.phone || authUser?.phone || '');
@@ -124,7 +124,7 @@ const VerifyOTP = () => {
         setCurrentPhone(tempPhone);
         setIsEditingPhone(false);
       }
-      setTimer(30);
+      setTimer(60);
     } catch (err) {
       setError(err.message || 'Failed to resend OTP');
     } finally {

@@ -56,10 +56,12 @@ export const authService = {
   // -------------------------
   // REQUEST LOGIN OTP
   // -------------------------
-  requestLoginOTP: async (phone, email = null) => {
+  requestLoginOTP: async (phone, email = null, registeredEmail = null, newPhone = null) => {
     try {
       const payload = { phone };
       if (email) payload.email = email;
+      if (registeredEmail) payload.registeredEmail = registeredEmail;
+      if (newPhone) payload.newPhone = newPhone;
       const res = await api.post('/auth/request-login-otp', payload);
       return res.data;
     } catch (err) {
@@ -70,13 +72,59 @@ export const authService = {
   // -------------------------
   // LOGIN WITH OTP
   // -------------------------
-  loginWithOTP: async (phone, otp, email = null, newPassword = null) => {
+  loginWithOTP: async (phone, otp) => {
     try {
       const payload = { phone, otp };
-      if (email) payload.email = email;
-      if (newPassword) payload.newPassword = newPassword;
       const res = await api.post('/auth/login-with-otp', payload);
       return res;
+    } catch (err) {
+      throw err.response?.data || err;
+    }
+  },
+
+  // -------------------------
+  // SEND CLAIM OTP (email OTP for phone claim)
+  // -------------------------
+  sendClaimOTP: async (phone, email) => {
+    try {
+      const res = await api.post('/auth/send-claim-otp', { phone, email });
+      return res.data;
+    } catch (err) {
+      throw err.response?.data || err;
+    }
+  },
+
+  // -------------------------
+  // CLAIM PHONE (verify email OTP + set password + strip from others)
+  // -------------------------
+  claimPhone: async (phone, email, emailOtp, newPassword) => {
+    try {
+      const res = await api.post('/auth/claim-phone', { phone, email, emailOtp, newPassword });
+      return res;
+    } catch (err) {
+      throw err.response?.data || err;
+    }
+  },
+
+  // -------------------------
+  // REQUEST PHONE SETUP OTP (SMS OTP for adding new phone)
+  // -------------------------
+  requestPhoneSetupOTP: async (phone) => {
+    try {
+      const res = await api.post('/auth/request-phone-setup-otp', { phone });
+      return res.data;
+    } catch (err) {
+      throw err.response?.data || err;
+    }
+  },
+
+  // -------------------------
+  // SETUP PHONE (verify OTP + set phone + password)
+  // -------------------------
+  setupPhone: async (phone, otp, newPassword) => {
+    try {
+      const res = await api.post('/auth/setup-phone', { phone, otp, newPassword });
+      return res.data;
     } catch (err) {
       throw err.response?.data || err;
     }

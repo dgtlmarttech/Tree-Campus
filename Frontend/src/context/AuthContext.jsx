@@ -114,11 +114,15 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('refreshToken', apiData.data.refreshToken);
       }
 
-      // Save user
+      const needsPhoneSetup = apiData.needsPhoneSetup || false;
+
+      // Save user & set state IF no phone setup is required
       if (apiData.data?.user) {
         const userData = apiData.data.user;
         localStorage.setItem('user', JSON.stringify(userData));
-        setUser(userData);
+        if (!needsPhoneSetup) {
+          setUser(userData);
+        }
       }
 
       setLoading(false);
@@ -126,7 +130,8 @@ export const AuthProvider = ({ children }) => {
       return {
         success: apiData.success,
         user: apiData.data.user,
-        message: apiData.message
+        message: apiData.message,
+        needsPhoneSetup,
       };
 
     } catch (err) {
@@ -138,15 +143,16 @@ export const AuthProvider = ({ children }) => {
         success: false,
         message: err.message || "Login failed",
         errorCode: err.errorCode || null,
+        isPlaceholderPhone: err.isPlaceholderPhone || false, // ✅ NEW: Pass placeholder flag to frontend
         phone: err.phone
       };
     }
   };
 
-  const requestLoginOTP = async (phone, email = null) => {
+  const requestLoginOTP = async (phone, email = null, registeredEmail = null, newPhone = null) => {
     try {
       setError(null);
-      const response = await authService.requestLoginOTP(phone, email);
+      const response = await authService.requestLoginOTP(phone, email, registeredEmail, newPhone);
       return response;
     } catch (err) {
       setError(err.message || 'Failed to send OTP');
@@ -154,12 +160,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const loginWithOTP = async (phone, otp, email = null, newPassword = null) => {
+  const loginWithOTP = async (phone, otp) => {
     try {
       setError(null);
       setLoading(true);
 
-      const response = await authService.loginWithOTP(phone, otp, email, newPassword);
+      const response = await authService.loginWithOTP(phone, otp);
       const apiData = response.data;
 
       if (!apiData || apiData.success === false) {
@@ -198,6 +204,72 @@ export const AuthProvider = ({ children }) => {
         success: false,
         message: err.message || "Login failed"
       };
+    }
+  };
+
+  const claimPhone = async (phone, email, emailOtp, newPassword) => {
+    try {
+      setError(null);
+      setLoading(true);
+
+      const response = await authService.claimPhone(phone, email, emailOtp, newPassword);
+      const apiData = response.data;
+
+      if (!apiData || apiData.success === false) {
+        throw new Error(apiData?.message || "Claim failed");
+      }
+
+      // Save tokens
+      if (apiData.data?.accessToken) {
+        localStorage.setItem('token', apiData.data.accessToken);
+        localStorage.setItem('authTimestamp', Date.now().toString());
+      }
+      if (apiData.data?.refreshToken) {
+        localStorage.setItem('refreshToken', apiData.data.refreshToken);
+      }
+
+      // Save user
+      if (apiData.data?.user) {
+        const userData = apiData.data.user;
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+      }
+
+      setLoading(false);
+
+      return {
+        success: apiData.success,
+        user: apiData.data.user,
+        message: apiData.message
+      };
+    } catch (err) {
+      console.error('Claim phone error:', err);
+      setError(err.message || "Claim failed");
+      setLoading(false);
+      
+      return {
+        success: false,
+        message: err.message || "Claim failed"
+      };
+    }
+  };
+
+  const setupNewPhone = async (phone, otp, newPassword) => {
+    try {
+      setError(null);
+      const response = await authService.setupPhone(phone, otp, newPassword);
+      
+      if (response.success && response.data?.user) {
+        const updatedUser = { ...user, ...response.data.user };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+
+      return response;
+    } catch (err) {
+      console.error('Setup phone error:', err);
+      setError(err.message || "Setup failed");
+      throw err;
     }
   };
 
@@ -306,6 +378,8 @@ export const AuthProvider = ({ children }) => {
     register,
     requestLoginOTP,
     loginWithOTP,
+    claimPhone,
+    setupNewPhone,
     verifyOTP,
     resendOTP,
     checkAuth

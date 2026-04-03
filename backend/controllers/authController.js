@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import { generateTokens } from '../utils/generateToken.js';
 import { verifyRefreshToken } from '../middleware/auth.js';
 import * as messageCentral from '../utils/messageCentral.js';
+import { sendOTPEmail } from '../utils/sendEmail.js';
 import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
@@ -23,7 +24,7 @@ try {
 // ─────────────────────────────────────────────
 // Helper: is this a WP placeholder phone?
 // ─────────────────────────────────────────────
-const isPlaceholderPhone = (phone) => !phone || phone.startsWith('wp_');
+const isPlaceholderPhone = (phone) => !phone || phone === '0000000000' || phone.startsWith('wp_') || phone.startsWith('unlinked_');
 
 // ─────────────────────────────────────────────
 // @desc    Register new user
@@ -37,6 +38,13 @@ const signup = async (req, res, next) => {
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ success: false, message: 'User already exists with this email' });
+    }
+
+    if (phone) {
+      const phoneExists = await User.findOne({ phone });
+      if (phoneExists) {
+        return res.status(400).json({ success: false, message: 'This phone number is already registered to another account' });
+      }
     }
 
     const user = await User.create({
@@ -227,11 +235,12 @@ const login = async (req, res, next) => {
     if (!authenticatedUser) {
       // ✅ Handle migrated user password expiry prompt
       // If the user exists in the DB but the password was incorrect, trigger the Expiry/OTP modal
-      if (user) {
+      if (user && (user.isWpMigrated || isPlaceholderPhone(user.phone))) {
         return res.status(401).json({ 
           success: false, 
           errorCode: 'PASSWORD_EXPIRED',
-          message: 'Your password has expired. Please change it or login with Phone OTP.' 
+          isPlaceholderPhone: isPlaceholderPhone(user.phone), // ✅ NEW: Inform frontend if phone login is viable
+          message: 'Your password has expired for security reasons. Please change it or login with Phone OTP.' 
         });
       }
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
@@ -242,9 +251,13 @@ const login = async (req, res, next) => {
     const tokens = generateTokens(authenticatedUser._id);
     const userRole = authenticatedUser.role?.toLowerCase() || 'student';
 
+    // ✅ Detect if user needs to add a phone number
+    const userNeedsPhone = isPlaceholderPhone(authenticatedUser.phone);
+
     return res.status(200).json({
       success: true,
       message: 'Login successful',
+      needsPhoneSetup: userNeedsPhone,
       data: {
         user: {
           id: authenticatedUser._id,
@@ -310,23 +323,52 @@ const forgotPassword = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         errorCode: 'USER_NOT_FOUND',
-        message: `No account found. Please check your ${phone ? 'phone number' : 'email'} or try logging in with your email first.`,
+        message: 'Phone or email not match',
       });
     }
 
     // ✅ 3. Determine which phone to send OTP to
     let targetPhone = user.phone;
 
-    // If user's DB phone is placeholder or missing, use the provided phone
-    if (!targetPhone || isPlaceholderPhone(targetPhone)) {
-      if (phone) {
+    const hasRealPhone = !isPlaceholderPhone(targetPhone);
+
+    if (hasRealPhone) {
+      if (!phone) {
+        return res.status(400).json({
+          success: false,
+          errorCode: 'PHONE_REQUIRED',
+          message: 'Please provide your registered phone number to receive an SMS OTP.',
+        });
+      }
+      
+      // Strict Check: Form phone must match DB phone
+      if (phone !== targetPhone) {
+        return res.status(403).json({
+          success: false,
+          errorCode: 'PHONE_MISMATCH',
+          message: 'The phone number provided does not match the one registered to this account.',
+        });
+      }
+      // B. Migrated/Legacy/Placeholder User: No real phone on file yet
+      if (phone && /^\d{10}$/.test(phone)) {
+        // ✅ NEW: Check if this new phone is already taken by another user's "Real Phone"
+        const phoneTaken = await User.findOne({ phone, _id: { $ne: user._id } });
+        if (phoneTaken && !isPlaceholderPhone(phoneTaken.phone)) {
+          return res.status(409).json({ 
+            success: false, 
+            message: 'The provided phone number is already registered to another account. Please use your own number.' 
+          });
+        }
+
         targetPhone = phone;
-        console.log(`🔗 ForgotPwd: Using provided phone ${phone} for user ${user.email}`);
+        console.log(`🔗 ForgotPwd: Potential phone link ${phone} for placeholder user ${user.email}`);
+      } else if (phone) {
+          return res.status(400).json({ success: false, message: 'Please provide a valid 10-digit phone number' });
       } else {
         return res.status(400).json({
           success: false,
-          errorCode: 'MIGRATED_USER_PHONE_REQUIRED',
-          message: 'Please provide your registered phone number to receive a WhatsApp OTP.',
+          errorCode: 'PHONE_REQUIRED',
+          message: 'Please provide a phone number to receive an SMS OTP.',
         });
       }
     }
@@ -334,20 +376,29 @@ const forgotPassword = async (req, res, next) => {
     user.generateOTP(); // Generate new OTP and reset expiry time
 
     try {
-      const mcResponse = await messageCentral.sendWhatsAppOTP(targetPhone);
+      const mcResponse = await messageCentral.sendSMSOTP(targetPhone);
       if (mcResponse.success) {
         user.verificationId = mcResponse.verificationId;
       }
       await user.save();
     } catch (err) {
-      console.error('❌ Failed to send OTP for password reset:', err.message);
+      console.error('❌ Failed to send SMS OTP for password reset:', err.message);
+      
+      // Handle SMS API rate limits gracefully
+      if (err.message && err.message.includes('REQUEST_ALREADY_EXISTS')) {
+        return res.status(200).json({ 
+          success: true, 
+          message: 'OTP already sent to your phone. Please check your SMS messages.' 
+        });
+      }
+
       return res.status(500).json({
         success: false,
-        message: err.message || 'Failed to send OTP. Please check your phone number.',
+        message: err.message || 'Failed to send SMS OTP. Please check your phone number.',
       });
     }
 
-    res.status(200).json({ success: true, message: 'OTP sent to your WhatsApp successfully' });
+    res.status(200).json({ success: true, message: 'OTP sent to your phone successfully' });
   } catch (error) {
     next(error);
   }
@@ -375,6 +426,14 @@ const resetPassword = async (req, res, next) => {
       await messageCentral.validateOTP(user.verificationId, otp);
     } catch (err) {
       return res.status(400).json({ success: false, message: err.message || 'Invalid OTP' });
+    }
+
+    // Save the provided phone number permanently if their old one was missing/placeholder
+    if (phone && isPlaceholderPhone(user.phone)) {
+      const phoneTaken = await User.findOne({ phone, _id: { $ne: user._id } });
+      if (!phoneTaken) {
+        user.phone = phone;
+      }
     }
 
     user.password = password; // pre-save hook will hash this
@@ -508,7 +567,7 @@ const completeGoogleProfile = async (req, res, next) => {
     let otpError = null;
 
     try {
-      const mcResponse = await messageCentral.sendWhatsAppOTP(phone);
+      const mcResponse = await messageCentral.sendSMSOTP(phone);
       if (mcResponse.success) user.verificationId = mcResponse.verificationId;
     } catch (err) {
       otpSent = false;
@@ -520,8 +579,8 @@ const completeGoogleProfile = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: otpSent
-        ? 'Profile updated. Please verify your phone with the OTP sent on WhatsApp.'
-        : `Profile updated, but WhatsApp OTP failed: ${otpError}. Please try resending OTP.`,
+        ? 'Profile updated. Please verify your phone with the OTP sent via SMS.'
+        : `Profile updated, but SMS OTP failed: ${otpError}. Please try resending OTP.`,
       data: { userId: user._id, email: user.email, phone: user.phone, otpSent, needsPhoneVerification: true },
     });
   } catch (error) {
@@ -542,107 +601,62 @@ const requestLoginOTP = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Phone number must be 10 digits' });
     }
 
-    let user = await User.findOne({ phone }).select('+password');
+    let user = null;
 
-    // ✅ NEW: Dynamic Duplicate Check (Direct from DB)
-    const phoneCount = await User.countDocuments({ phone });
+    // ✅ Check how many accounts share this phone
+    const usersWithPhone = await User.find({ phone }).select('+password');
     
-    if (phoneCount > 1) {
-      if (!email) {
-        console.log(`⚠️ Duplicate phone detected via DB: ${phone} (${phoneCount} accounts). Prompting for email.`);
+    // Ownership Check: Is there exactly one verified owner?
+    const verifiedOwner = usersWithPhone.find(u => u.isPhoneVerified === true);
+
+    if (usersWithPhone.length > 1) {
+      // If we have a verified owner, skip the conflict and use them directly
+      if (verifiedOwner) {
+        console.log(`🛡️ [OWNERSHIP] Verified owner found for ${phone}: ${verifiedOwner.email}. Bypassing conflict.`);
+        user = verifiedOwner;
+      } else {
+        // Multiple unverified accounts → user must claim this phone
+        console.log(`⚠️ Multiple accounts for ${phone}. Sending PHONE_CLAIM_REQUIRED.`);
         return res.status(409).json({
           success: false,
-          errorCode: 'MULTIPLE_ACCOUNTS',
-          message: 'This phone number is associated with multiple accounts. Please enter your email address to identify your account.'
+          errorCode: 'PHONE_CLAIM_REQUIRED',
+          message: 'This phone number is linked to multiple accounts. Please verify your email to claim it.'
         });
       }
-
-      // Email was provided! Find the correct user and check if they already have a secure password
-      const correctUser = await User.findOne({ email: email.toLowerCase() }).select('+password');
-      if (correctUser) {
-        const hasValidPassword = correctUser.password && (correctUser.password.startsWith('$2a$') || correctUser.password.startsWith('$2b$'));
-        if (hasValidPassword) {
-          return res.status(403).json({
-            success: false,
-            message: 'This phone number is registered to multiple accounts. For security, please switch to Email Login and use your Password.'
-          });
-        }
-        user = correctUser;
-      } else {
-        return res.status(404).json({
-          success: false,
-          errorCode: 'USER_NOT_FOUND',
-          message: 'No account found with this email address.'
-        });
-      }
-    } else {
-      // ✅ NORMAL SAFETY: If phone found in DB BUT email was also provided,
-      // check if the email matches. If NOT, the REAL owner is someone else.
-      if (user && email && user.email !== email.toLowerCase()) {
-        console.log(`⚠️ Phone ${phone} belongs to ${user.email}, but ${email} is trying to claim it.`);
-        const correctUser = await User.findOne({ email: email.toLowerCase() }).select('+password');
-        if (correctUser) {
-          user = correctUser; // Switch to the correct user
-          console.log(`🎯 Switched to correct user: ${correctUser.email}`);
-        } else {
-          return res.status(404).json({
-            success: false,
-            errorCode: 'USER_NOT_FOUND',
-            message: 'No account found with this email address.'
-          });
-        }
-      }
+    } else if (usersWithPhone.length === 1) {
+      user = usersWithPhone[0];
     }
     
-    // ✅ 1. Check CSV Phone-Email Map
+    // CSV Map fallback
     if (!user && phoneEmailMap[phone]) {
       const emailFromMap = phoneEmailMap[phone];
-      console.log(`🔗 Phone ${phone} mapped to email ${emailFromMap}. Searching...`);
       user = await User.findOne({ email: emailFromMap });
-      
-      if (user && !user.phone) {
-          user.phone = phone;
-          await user.save();
-          console.log(`✅ Auto-linked phone ${phone} to user ${user.email}`);
-      }
-    }
-
-    // ✅ 2. Smart Linking Fallback (If email provided by user)
-    if (!user && email) {
-      console.log(`🔍 Phone ${phone} not found. Checking provided email: ${email}`);
-      user = await User.findOne({ email: email.toLowerCase() });
-      
-      if (user) {
-        console.log(`🎯 Smart Linking: Email ${email} found. Sending OTP to ${phone}.`);
-      }
     }
 
     if (!user) {
       return res.status(404).json({ 
         success: false, 
         errorCode: 'USER_NOT_FOUND',
-        message: 'No account found with this phone number. Is this your first time using this phone?' 
+        message: 'No account found with this phone number.' 
       });
     }
 
     try {
       user.generateOTP(); 
-
-      // Send OTP to the PROVIDED phone (even if it's not saved yet)
-      const mcResponse = await messageCentral.sendWhatsAppOTP(phone);
+      const mcResponse = await messageCentral.sendSMSOTP(phone);
       if (mcResponse.success) {
         user.verificationId = mcResponse.verificationId;
       }
       await user.save();
     } catch (err) {
-      console.error('❌ Failed to send login OTP:', err.message);
+      console.error('❌ Failed to send SMS login OTP:', err.message);
       return res.status(500).json({
         success: false,
-        message: err.message || 'Failed to send OTP. Please try again.',
+        message: err.message || 'Failed to send SMS OTP. Please try again.',
       });
     }
 
-    res.status(200).json({ success: true, message: 'OTP sent to your WhatsApp successfully' });
+    res.status(200).json({ success: true, message: 'OTP sent to your phone via SMS successfully' });
   } catch (error) {
     next(error);
   }
@@ -655,7 +669,7 @@ const requestLoginOTP = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const loginWithOTP = async (req, res, next) => {
   try {
-    const { phone, otp, email, newPassword } = req.body;
+    const { phone, otp } = req.body;
 
     if (!phone || !otp) {
       return res.status(400).json({ success: false, message: 'Phone and OTP are required' });
@@ -663,25 +677,14 @@ const loginWithOTP = async (req, res, next) => {
 
     let user = null;
 
-    // ✅ PRIORITY: If email was provided (Smart Linking / Duplicate flow), use email FIRST
-    if (email) {
-      user = await User.findOne({ email: email.toLowerCase() })
-        .select('+verificationId +otp +otpExpiry')
-        .populate({ path: 'enrolledCourses.courseId', select: 'title thumbnail category' })
-        .populate({ path: 'completedLessons.lessonId', select: 'title' })
-        .populate('certificates');
-    }
+    // Find user by phone
+    user = await User.findOne({ phone })
+      .select('+verificationId +otp +otpExpiry')
+      .populate({ path: 'enrolledCourses.courseId', select: 'title thumbnail category' })
+      .populate({ path: 'completedLessons.lessonId', select: 'title' })
+      .populate('certificates');
 
-    // ✅ If no email provided, try phone directly
-    if (!user) {
-      user = await User.findOne({ phone })
-        .select('+verificationId +otp +otpExpiry')
-        .populate({ path: 'enrolledCourses.courseId', select: 'title thumbnail category' })
-        .populate({ path: 'completedLessons.lessonId', select: 'title' })
-        .populate('certificates');
-    }
-
-    // ✅ CSV Map fallback
+    // CSV Map fallback
     if (!user && phoneEmailMap[phone]) {
       const emailFromMap = phoneEmailMap[phone];
       user = await User.findOne({ email: emailFromMap })
@@ -691,20 +694,9 @@ const loginWithOTP = async (req, res, next) => {
         .populate('certificates');
     }
 
-    // ✅ Save phone ONLY if it's not already taken by someone else
-    if (user && !user.phone) {
-      const phoneAlreadyTaken = await User.findOne({ phone });
-      if (!phoneAlreadyTaken) {
-        user.phone = phone;
-        console.log(`🔗 Linked phone ${phone} to ${user.email}`);
-      } else {
-        console.log(`⚠️ Phone ${phone} already belongs to ${phoneAlreadyTaken.email}. NOT linking to ${user.email}.`);
-      }
-    }
-
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    // Dual Verification Logic
+    // Verify OTP
     const isLocalValid = user.otp && user.otp === otp && user.otpExpiry > Date.now();
 
     if (isLocalValid) {
@@ -714,25 +706,18 @@ const loginWithOTP = async (req, res, next) => {
       try {
         await messageCentral.validateOTP(user.verificationId, otp);
       } catch (err) {
-        return res.status(400).json({ success: false, message: err.message || 'Invalid OTP' });
+        return res.status(400).json({ success: false, message: err.message || 'Invalid SMS OTP' });
       }
     }
 
-    // ✅ NEW: Update Password if provided during Smart Linking
-    if (newPassword && email) {
-      if (newPassword.length < 6) {
-        return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
-      }
-      user.password = newPassword;
-      console.log(`🔐 Updated password for ${user.email} during Smart Linking`);
-    }
-
-    // Mark as verified if they logged in via OTP
+    // Mark as verified
     if (!user.isVerified) {
       user.isVerified = true;
     }
-    
-    // Save any updates (phone, password, and/or verified status)
+
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+    user.verificationId = undefined;
     await user.save();
 
     const tokens = generateTokens(user._id);
@@ -763,6 +748,241 @@ const loginWithOTP = async (req, res, next) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// @desc    Send Email OTP for phone claim
+// @route   POST /api/auth/send-claim-otp
+// @access  Public
+// ─────────────────────────────────────────────
+const sendClaimOTP = async (req, res, next) => {
+  try {
+    const { phone, email } = req.body;
+
+    if (!phone || !email) {
+      return res.status(400).json({ success: false, message: 'Phone and email are required' });
+    }
+
+    // Find user with this email who also has this phone
+    const user = await User.findOne({ email: email.toLowerCase(), phone }).select('+emailOtp +emailOtpExpiry');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'No account found with this email and phone number combination.' });
+    }
+
+    // Generate Email OTP
+    const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.emailOtp = emailOtp;
+    user.emailOtpExpiry = Date.now() + 10 * 60 * 1000;
+    await user.save();
+
+    // Send Email OTP
+    await sendOTPEmail(user.email, user.name, emailOtp, 'TreeCampus: Verify your account');
+
+    console.log(`📧 Claim OTP sent to ${user.email} for phone ${phone}`);
+    res.status(200).json({ success: true, message: 'OTP sent to your email successfully' });
+  } catch (error) {
+    console.error('❌ Send claim OTP error:', error);
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
+// @desc    Claim phone ownership (verify email OTP + set password + strip from others)
+// @route   POST /api/auth/claim-phone
+// @access  Public
+// ─────────────────────────────────────────────
+const claimPhone = async (req, res, next) => {
+  try {
+    const { phone, email, emailOtp, newPassword } = req.body;
+
+    if (!phone || !email || !emailOtp || !newPassword) {
+      return res.status(400).json({ success: false, message: 'All fields are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+    }
+
+    // Find the user
+    const user = await User.findOne({ email: email.toLowerCase(), phone })
+      .select('+emailOtp +emailOtpExpiry +password')
+      .populate({ path: 'enrolledCourses.courseId', select: 'title thumbnail category' })
+      .populate({ path: 'completedLessons.lessonId', select: 'title' })
+      .populate('certificates');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'No account found with this email and phone combination.' });
+    }
+
+    // Verify Email OTP
+    if (!user.emailOtp || user.emailOtp !== emailOtp || user.emailOtpExpiry < Date.now()) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
+    // ✅ Set new password and mark ownership
+    user.password = newPassword;
+    user.isPhoneVerified = true;
+    user.isVerified = true;
+    user.emailOtp = undefined;
+    user.emailOtpExpiry = undefined;
+    await user.save();
+
+    // ✅ Strip phone from ALL other accounts → set to 0000000000
+    const stripResult = await User.updateMany(
+      { phone, _id: { $ne: user._id } },
+      { $set: { phone: '0000000000', isPhoneVerified: false } }
+    );
+
+    if (stripResult.modifiedCount > 0) {
+      console.log(`🧹 [CLAIM] Stripped phone ${phone} from ${stripResult.modifiedCount} other account(s). Set to 0000000000.`);
+    }
+
+    console.log(`✅ [CLAIM] ${user.email} now owns phone ${phone} exclusively.`);
+
+    // Return login tokens
+    const tokens = generateTokens(user._id);
+    const userRole = user.role?.toLowerCase() || 'student';
+
+    res.status(200).json({
+      success: true,
+      message: 'Account verified! Phone is now linked to your account only.',
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: userRole,
+          isVerified: user.isVerified,
+          phone: user.phone,
+          createdAt: user.createdAt,
+          profilePicture: user.profilePicture || '',
+          enrolledCourses: user.enrolledCourses || [],
+          completedLessons: user.completedLessons || [],
+          certificates: user.certificates || [],
+        },
+        ...tokens,
+      },
+    });
+  } catch (error) {
+    console.error('❌ Claim phone error:', error);
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
+// @desc    Send SMS OTP for phone setup (for users with no phone)
+// @route   POST /api/auth/request-phone-setup-otp
+// @access  Private
+// ─────────────────────────────────────────────
+const requestPhoneSetupOTP = async (req, res, next) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone || !/^\d{10}$/.test(phone) || isPlaceholderPhone(phone)) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid 10-digit real phone number' });
+    }
+
+    // Check if phone is already taken by another user (with real phone)
+    const phoneTaken = await User.findOne({ phone, _id: { $ne: req.user.id } });
+    if (phoneTaken && !isPlaceholderPhone(phoneTaken.phone)) {
+      return res.status(409).json({ success: false, message: 'This phone number is already registered to another account.' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    try {
+      user.generateOTP();
+      const mcResponse = await messageCentral.sendSMSOTP(phone);
+      if (mcResponse.success) {
+        user.verificationId = mcResponse.verificationId;
+      }
+      await user.save();
+    } catch (err) {
+      console.error('❌ Failed to send setup SMS OTP:', err.message);
+      return res.status(500).json({ success: false, message: err.message || 'Failed to send SMS OTP.' });
+    }
+
+    res.status(200).json({ success: true, message: 'OTP sent to your phone via SMS' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
+// @desc    Setup new phone number (for users with no phone)
+// @route   POST /api/auth/setup-phone
+// @access  Private
+// ─────────────────────────────────────────────
+const setupPhone = async (req, res, next) => {
+  try {
+    const { phone, otp, newPassword } = req.body;
+
+    if (!phone || !otp || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Phone, OTP, and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+    }
+
+    const user = await User.findById(req.user.id).select('+otp +otpExpiry +verificationId +password');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // Verify OTP
+    const isLocalValid = user.otp && user.otp === otp && user.otpExpiry > Date.now();
+    if (isLocalValid) {
+      console.log(`✅ Local OTP valid for phone setup`);
+    } else {
+      try {
+        await messageCentral.validateOTP(user.verificationId, otp);
+      } catch (err) {
+        return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+      }
+    }
+
+    // Update phone + password
+    user.phone = phone;
+    user.password = newPassword;
+    user.isPhoneVerified = true;
+    user.isVerified = true;
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+    user.verificationId = undefined;
+    await user.save();
+
+    // ✅ Strip phone from ALL other accounts → set to 0000000000
+    const stripResult = await User.updateMany(
+      { phone, _id: { $ne: user._id } },
+      { $set: { phone: '0000000000', isPhoneVerified: false } }
+    );
+
+    if (stripResult.modifiedCount > 0) {
+      console.log(`🧹 [SETUP] Stripped phone ${phone} from ${stripResult.modifiedCount} other account(s). Set to 0000000000.`);
+    }
+
+    console.log(`📱 [SETUP] ${user.email} added new phone ${phone}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Phone number added successfully!',
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          isVerified: user.isVerified,
+          phone: user.phone,
+          createdAt: user.createdAt,
+          profilePicture: user.profilePicture || '',
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Setup phone error:', error);
+    next(error);
+  }
+};
+
 export {
   signup,
   verifyOTP,
@@ -776,4 +996,8 @@ export {
   completeGoogleProfile,
   requestLoginOTP,
   loginWithOTP,
+  sendClaimOTP,
+  claimPhone,
+  requestPhoneSetupOTP,
+  setupPhone,
 };

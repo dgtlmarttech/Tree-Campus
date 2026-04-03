@@ -7,7 +7,7 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const email = searchParams.get("email");
   const phone = searchParams.get("phone");
-  const identifier = email || phone;
+  const identifier = phone || email;
 
   const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
@@ -16,6 +16,23 @@ const ResetPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [timer, setTimer] = useState(0);
+  const [canResend, setCanResend] = useState(true);
+
+  // 60s Timer Logic
+  useEffect(() => {
+    let interval = null;
+    if (timer > 0) {
+      setCanResend(false);
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    } else {
+      setCanResend(true);
+      if (interval) clearInterval(interval);
+    }
+    return () => { if (interval) clearInterval(interval); };
+  }, [timer]);
 
   // Redirect if no identifier in URL
   useEffect(() => {
@@ -47,7 +64,17 @@ const ResetPassword = () => {
     setMessage("");
 
     try {
-      const payload = email ? { email, password, otp } : { phone, password, otp };
+      const payload = { 
+        email, 
+        phone, 
+        password, 
+        otp 
+      };
+      
+      // Clean up payload (remove null keys)
+      if (!email) delete payload.email;
+      if (!phone) delete payload.phone;
+
       const res = await axios.post("/auth/reset-password", payload);
 
       setMessage("Password Updated Successfully!");
@@ -332,6 +359,28 @@ const ResetPassword = () => {
               </div>
             )}
 
+            {/* Resend OTP */}
+            <div className="text-right">
+              <p className="text-xs sm:text-sm text-gray-500">
+                Didn't receive OTP?{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (canResend) {
+                      navigate("/forgot-password");
+                      setTimer(60);
+                    }
+                  }}
+                  disabled={!canResend}
+                  className={`font-bold transition-colors cursor-pointer ${
+                    canResend ? "text-[#14B8A6] hover:text-[#0D9488]" : "text-gray-400 cursor-not-allowed"
+                  }`}
+                >
+                  {timer > 0 ? `Resend OTP in ${timer}s` : "Resend OTP"}
+                </button>
+              </p>
+            </div>
+
             <button
               onClick={handleReset}
               disabled={isLoading || !otp || !password || !confirm}
@@ -401,7 +450,6 @@ const ResetPassword = () => {
             </div>
           )}
 
-          {/* Back to Login */}
           <div className="mt-6 text-center">
             <a
               href="/login"
@@ -411,17 +459,6 @@ const ResetPassword = () => {
             </a>
           </div>
         </div>
-
-        {/* Footer */}
-        <p className="text-center text-xs sm:text-sm text-gray-500 mt-6">
-          Didn't receive OTP?{" "}
-          <button
-            onClick={() => navigate("/forgot-password")}
-            className="text-teal-600 hover:text-teal-700 font-medium"
-          >
-            Resend OTP
-          </button>
-        </p>
       </div>
     </div>
   );

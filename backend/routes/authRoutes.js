@@ -13,10 +13,14 @@ import {
   forgotPassword,
   resetPassword,
   logout,
-  getProfile, // ✅ Import getProfile
-  completeGoogleProfile, // ✅ Import completeGoogleProfile
+  getProfile,
+  completeGoogleProfile,
   requestLoginOTP,
   loginWithOTP,
+  sendClaimOTP,
+  claimPhone,
+  requestPhoneSetupOTP,
+  setupPhone,
 } from '../controllers/authController.js';
 
 import { validateSignup, validateLogin, validateOTP, validate } from '../middleware/validate.js';
@@ -51,6 +55,21 @@ router.post('/login-with-otp', [
   validate
 ], loginWithOTP);
 
+// Phone Claim (for multiple accounts sharing same phone)
+router.post('/send-claim-otp', [
+  body('phone').isLength({ min: 10, max: 10 }).withMessage('Phone number must be 10 digits'),
+  body('email').isEmail().withMessage('Valid email is required'),
+  validate
+], sendClaimOTP);
+
+router.post('/claim-phone', [
+  body('phone').isLength({ min: 10, max: 10 }).withMessage('Phone number must be 10 digits'),
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('emailOtp').isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits'),
+  body('newPassword').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  validate
+], claimPhone);
+
 // Refresh token
 router.post('/refresh-token', [
   body('refreshToken').notEmpty().withMessage('Refresh token is required'),
@@ -77,7 +96,7 @@ router.post('/reset-password', [
 // ----------------- Protected Routes -----------------
 
 // Get user profile
-router.get('/profile', protect, getProfile); // ✅ Add this route
+router.get('/profile', protect, getProfile);
 
 // Logout
 router.post('/logout', protect, logout);
@@ -88,6 +107,19 @@ router.post('/complete-google-profile', protect, [
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   validate
 ], completeGoogleProfile);
+
+// Phone Setup (for users with no phone — after email login)
+router.post('/request-phone-setup-otp', protect, [
+  body('phone').isLength({ min: 10, max: 10 }).withMessage('Phone number must be 10 digits'),
+  validate
+], requestPhoneSetupOTP);
+
+router.post('/setup-phone', protect, [
+  body('phone').isLength({ min: 10, max: 10 }).withMessage('Phone number must be 10 digits'),
+  body('otp').isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits'),
+  body('newPassword').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  validate
+], setupPhone);
 
 // Google OAuth Routes
 router.get('/google', (req, res, next) => {
