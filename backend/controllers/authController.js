@@ -97,15 +97,14 @@ const verifyOTP = async (req, res, next) => {
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     if (user.isVerified) return res.status(400).json({ success: false, message: 'User already verified' });
 
-    // Check expiry
     const now = Date.now();
     const expiry = user.otpExpiry ? new Date(user.otpExpiry).getTime() : 0;
     
+    // Allow fallback to Message Central even if local expiry is reached
     if (expiry < now) {
-      console.log(`❌ [DEBUG] Signup OTP Expired: Expiry=${expiry}, Now=${now}`);
-      return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
+      console.log(`ℹ️ [DEBUG] Local OTP Expired: Expiry=${expiry}, Now=${now}. Proceeding to Message Central validation.`);
     }
-
+    
     // Dual Verification Logic
     const isLocalValid = user.otp && user.otp === otp && expiry > now;
     
@@ -422,13 +421,12 @@ const resetPassword = async (req, res, next) => {
     const user = await User.findOne(query).select('+otp +otpExpiry +password +verificationId');
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    // ✅ FIX 3: Check expiry first (EXPLICIT COMPARISON)
     const now = Date.now();
     const expiry = user.otpExpiry ? new Date(user.otpExpiry).getTime() : 0;
 
+    // Allow fallback even if local expiry check fails (Trust the provider)
     if (expiry < now) {
-      console.log(`❌ [DEBUG] ResetPwd OTP Expired: Expiry=${expiry}, Now=${now}`);
-      return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
+      console.log(`ℹ️ [DEBUG] ResetPwd OTP Expired local compare: Expiry=${expiry}, Now=${now}.`);
     }
 
     try {
@@ -705,8 +703,9 @@ const loginWithOTP = async (req, res, next) => {
 
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    // Verify OTP
-    const isLocalValid = user.otp && user.otp === otp && user.otpExpiry > Date.now();
+    // Verify OTP (Dual check)
+    const expiry = user.otpExpiry ? new Date(user.otpExpiry).getTime() : 0;
+    const isLocalValid = user.otp && user.otp === otp && expiry > Date.now();
 
     if (isLocalValid) {
       console.log(`✅ [DEBUG] Local OTP verification successful for ${phone}`);

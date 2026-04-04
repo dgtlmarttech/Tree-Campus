@@ -212,7 +212,7 @@ if (hash.startsWith("$wp$")) {
 userSchema.methods.generateOTP = function () {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   this.otp = otp;
-  this.otpExpiry = Date.now() + 10 * 60 * 1000;
+  this.otpExpiry = Date.now() + 15 * 60 * 1000; // 15 Minutes
   console.log(`🔑 [DEBUG] Generated OTP for User: ${otp}`);
   return otp;
 };
