@@ -53,7 +53,6 @@ export const sendSMSOTP = async (mobileNumber) => {
     const authToken = await getAuthToken();
     const url = `${BASE_URL}/verification/v3/send`;
     
-    // We pass params in the query string as before
     const params = new URLSearchParams({
       countryCode: COUNTRY_CODE,
       customerId: CUSTOMER_ID,
@@ -61,6 +60,18 @@ export const sendSMSOTP = async (mobileNumber) => {
       mobileNumber: mobileNumber,
       otpLength: '6',
     });
+    
+    // Autofill Support
+    const appHash = process.env.APP_HASH || '4Yn1gccqloK';
+    if (appHash) {
+      params.append('appHash', appHash);
+      params.append('appToken', appHash); // Added both common names just in case
+    }
+
+    const templateId = process.env.MESSAGE_CENTRAL_TEMPLATE_ID;
+    if (templateId) {
+       params.append('templateId', templateId);
+    }
 
     console.log(`🚀 [DEBUG] Sending SMS OTP to ${mobileNumber} via Message Central v3...`);
     const response = await fetch(`${url}?${params.toString()}`, {
