@@ -123,15 +123,11 @@ export const validateOTP = async (verificationId, otp) => {
     const url = `${BASE_URL}/verification/v3/validateOtp`;
     
     const params = new URLSearchParams({
-  countryCode: COUNTRY_CODE,
-  customerId: CUSTOMER_ID,
-  flowType: 'SMS',
-  mobileNumber: mobileNumber,
-  otpLength: '6',
-  // ADD THIS LINE:
-  messageText: `<#> Your OTP is {code}. ${appHash}` 
-});
-
+        countryCode: COUNTRY_CODE,
+        verificationId: verificationId,
+        customerId: CUSTOMER_ID,
+        code: otp,
+    });
 
     console.log(`🔍 [DEBUG] Validating SMS OTP for VerificationID: ${verificationId}...`);
     const response = await fetch(`${url}?${params.toString()}`, {
