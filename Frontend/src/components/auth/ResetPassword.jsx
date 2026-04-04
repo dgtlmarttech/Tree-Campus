@@ -157,7 +157,7 @@ const ResetPassword = () => {
                 />
               </div>
               <p className="mt-1 text-xs text-gray-500">
-                Check your {phone ? "WhatsApp" : "email"} for the OTP code
+                Check your {phone ? "SMS" : "email"} for the OTP code
               </p>
             </div>
 

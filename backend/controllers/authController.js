@@ -61,13 +61,13 @@ const signup = async (req, res, next) => {
     // No local OTP generation here - rely on Message Central's own code
 
     try {
-      const mcResponse = await messageCentral.sendWhatsAppOTP(phone);
+      const mcResponse = await messageCentral.sendSMSOTP(phone);
       if (mcResponse.success) {
         user.verificationId = mcResponse.verificationId;
       }
       await user.save();
     } catch (err) {
-      console.error('❌ Failed to send WhatsApp OTP during signup:', err.message);
+      console.error('❌ Failed to send SMS OTP during signup:', err.message);
       otpSent = false;
       otpError = err.message;
     }
@@ -75,8 +75,8 @@ const signup = async (req, res, next) => {
     res.status(201).json({
       success: true,
       message: otpSent
-        ? 'User registered. Please verify your phone with the OTP sent on WhatsApp.'
-        : `User registered, but WhatsApp OTP failed: ${otpError}. Please try resending OTP.`,
+        ? 'User registered. Please verify your phone with the OTP sent via SMS.'
+        : `User registered, but SMS OTP failed: ${otpError}. Please try resending OTP.`,
       data: { userId: user._id, email: user.email, name: user.name, phone: user.phone, otpSent },
     });
   } catch (error) {
@@ -173,25 +173,25 @@ const resendOTP = async (req, res, next) => {
     }
 
     try {
-      const mcResponse = await messageCentral.sendWhatsAppOTP(user.phone);
+      const mcResponse = await messageCentral.sendSMSOTP(user.phone);
       if (mcResponse.success) {
         user.verificationId = mcResponse.verificationId;
         await user.save();
       }
     } catch (err) {
-      console.error('❌ Failed to resend WhatsApp OTP:', err.message);
+      console.error('❌ Failed to resend SMS OTP:', err.message);
       
       // ✅ Handle "REQUEST_ALREADY_EXISTS" as success (OTP is already active)
       if (err.message && err.message.includes('REQUEST_ALREADY_EXISTS')) {
         return res.status(200).json({ 
           success: true, 
-          message: 'OTP already sent to your WhatsApp. Please check your messages.' 
+          message: 'OTP already sent to your phone. Please check your messages.' 
         });
       }
 
       return res.status(500).json({ 
         success: false, 
-        message: err.message || 'WhatsApp service error. Please try again later.' 
+        message: err.message || 'SMS service error. Please try again later.' 
       });
     }
 
