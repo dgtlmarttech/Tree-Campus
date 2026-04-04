@@ -48,7 +48,7 @@ connectDB();
 
 // CORS must be FIRST
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://treecampus.netlify.app','https://courses.treecampus.in'],
+  origin: ['http://localhost:5173','http://localhost:5174', 'https://treecampus.netlify.app','https://courses.treecampus.in'],
   methods: ['GET', 'POST', 'PUT', 'DELETE','PATCH','Options'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   exposedHeaders: ['Visemes', 'Content-Disposition'],

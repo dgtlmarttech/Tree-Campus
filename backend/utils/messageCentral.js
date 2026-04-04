@@ -48,7 +48,7 @@ const getAuthToken = async () => {
  * Send SMS OTP
  * @param {string} mobileNumber 10-digit mobile number
  */
-export const sendSMSOTP = async (mobileNumber, otp) => {
+export const sendSMSOTP = async (mobileNumber) => {
   try {
     const authToken = await getAuthToken();
     const url = `${BASE_URL}/verification/v3/send`;
@@ -62,11 +62,6 @@ export const sendSMSOTP = async (mobileNumber, otp) => {
       otpLength: '6',
     });
 
-    if (otp) {
-        params.append('code', otp);
-        console.log(`🔑 [DEBUG] Passing custom OTP code: ${otp}`);
-    }
-
     console.log(`🚀 [DEBUG] Sending SMS OTP to ${mobileNumber} via Message Central v3...`);
     const response = await fetch(`${url}?${params.toString()}`, {
       method: 'POST',
@@ -74,8 +69,6 @@ export const sendSMSOTP = async (mobileNumber, otp) => {
         'authToken': authToken,
       }
     });
-
-    console.log(`📡 [DEBUG] Message Central Response Status: ${response.status} ${response.statusText}`);
 
     const text = await response.text();
     let data = {};
@@ -87,10 +80,6 @@ export const sendSMSOTP = async (mobileNumber, otp) => {
         throw new Error('Our SMS service returned an invalid response. Please try again later.');
       }
     } else {
-      // If text is empty, check if status was 200 (unlikely for empty body but possible)
-      if (response.ok) {
-        throw new Error(`SMS service returned an empty success response (Status: ${response.status}). This often means your account balance is low or SMS templates are not approved.`);
-      }
       throw new Error(`SMS service connection failed (Status: ${response.status}). Please try again.`);
     }
 
@@ -119,7 +108,7 @@ export const sendSMSOTP = async (mobileNumber, otp) => {
 export const validateOTP = async (verificationId, otp) => {
   try {
     const authToken = await getAuthToken();
-    // Using v3 validation with Query Params (matching what worked for send)
+    // Using v3 validation with GET method
     const url = `${BASE_URL}/verification/v3/validateOtp`;
     
     const params = new URLSearchParams({
@@ -131,13 +120,17 @@ export const validateOTP = async (verificationId, otp) => {
 
     console.log(`🔍 [DEBUG] Validating SMS OTP for VerificationID: ${verificationId}...`);
     const response = await fetch(`${url}?${params.toString()}`, {
-      method: 'POST',
+      method: 'GET', // Changed from POST to GET
       headers: {
         'authToken': authToken,
       }
     });
 
+    console.log(`📡 [DEBUG] MC Validation Status: ${response.status} ${response.statusText}`);
+
     const text = await response.text();
+    console.log(`📡 [DEBUG] MC Validation Raw Response: ${text}`);
+
     let data = {};
     if (text) {
         try {
@@ -155,7 +148,7 @@ export const validateOTP = async (verificationId, otp) => {
       };
     }
     
-    console.error('❌ Validation Failed:', JSON.stringify(data, null, 2));
+    console.error('❌ Validation Failed Response:', JSON.stringify(data, null, 2));
     throw new Error(data.message || data.error || 'Invalid or expired OTP');
   } catch (error) {
     console.error('❌ Validate SMS OTP Error:', error.message);

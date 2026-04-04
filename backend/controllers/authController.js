@@ -58,7 +58,7 @@ const signup = async (req, res, next) => {
     let otpSent = true;
     let otpError = null;
 
-    user.generateOTP(); // Generates local OTP and logs it to terminal
+    // No local OTP generation here - rely on Message Central's own code
 
     try {
       const mcResponse = await messageCentral.sendWhatsAppOTP(phone);
@@ -105,18 +105,11 @@ const verifyOTP = async (req, res, next) => {
       console.log(`ℹ️ [DEBUG] Local OTP Expired: Expiry=${expiry}, Now=${now}. Proceeding to Message Central validation.`);
     }
     
-    // Dual Verification Logic
-    const isLocalValid = user.otp && user.otp === otp && expiry > now;
-    
-    if (isLocalValid) {
-      console.log(`✅ [DEBUG] Local OTP verification successful for ${email}`);
-    } else {
-      console.log(`ℹ️ [DEBUG] Local OTP invalid or expired. Falling back to Message Central for ${email}`);
-      try {
-        await messageCentral.validateOTP(user.verificationId, otp);
-      } catch (err) {
-        return res.status(400).json({ success: false, message: err.message || 'Invalid OTP' });
-      }
+    // SMS Verification (Rely solely on Message Central)
+    try {
+      await messageCentral.validateOTP(user.verificationId, otp);
+    } catch (err) {
+      return res.status(400).json({ success: false, message: err.message || 'Invalid OTP' });
     }
 
     user.isVerified = true;
@@ -377,10 +370,10 @@ const forgotPassword = async (req, res, next) => {
       }
     }
     
-    user.generateOTP(); // Generate new OTP and reset expiry time
+    // No local OTP needed for SMS Forgot Password
 
     try {
-      const mcResponse = await messageCentral.sendSMSOTP(targetPhone, user.otp);
+      const mcResponse = await messageCentral.sendSMSOTP(targetPhone);
       if (mcResponse.success) {
         user.verificationId = mcResponse.verificationId;
       }
@@ -570,12 +563,12 @@ const completeGoogleProfile = async (req, res, next) => {
     user.password = password;
     user.isVerified = false;
 
-    user.generateOTP(); 
+    // No local OTP needed for Google Profile SMS
     let otpSent = true;
     let otpError = null;
 
     try {
-      const mcResponse = await messageCentral.sendSMSOTP(phone, user.otp);
+      const mcResponse = await messageCentral.sendSMSOTP(phone);
       if (mcResponse.success) user.verificationId = mcResponse.verificationId;
     } catch (err) {
       otpSent = false;
@@ -650,8 +643,7 @@ const requestLoginOTP = async (req, res, next) => {
     }
 
     try {
-      user.generateOTP(); 
-      const mcResponse = await messageCentral.sendSMSOTP(phone, user.otp);
+      const mcResponse = await messageCentral.sendSMSOTP(phone);
       if (mcResponse.success) {
         user.verificationId = mcResponse.verificationId;
       }
@@ -704,19 +696,11 @@ const loginWithOTP = async (req, res, next) => {
 
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    // Verify OTP (Dual check)
-    const expiry = user.otpExpiry ? new Date(user.otpExpiry).getTime() : 0;
-    const isLocalValid = user.otp && user.otp === otp && expiry > Date.now();
-
-    if (isLocalValid) {
-      console.log(`✅ [DEBUG] Local OTP verification successful for ${phone}`);
-    } else {
-      console.log(`ℹ️ [DEBUG] Local OTP invalid or expired. Falling back to Message Central for ${phone}`);
-      try {
-        await messageCentral.validateOTP(user.verificationId, otp);
-      } catch (err) {
-        return res.status(400).json({ success: false, message: err.message || 'Invalid SMS OTP' });
-      }
+    // SMS Verification (Rely solely on Message Central)
+    try {
+      await messageCentral.validateOTP(user.verificationId, otp);
+    } catch (err) {
+      return res.status(400).json({ success: false, message: err.message || 'Invalid SMS OTP' });
     }
 
     // Mark as verified
