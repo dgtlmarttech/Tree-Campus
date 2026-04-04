@@ -380,7 +380,7 @@ const forgotPassword = async (req, res, next) => {
     user.generateOTP(); // Generate new OTP and reset expiry time
 
     try {
-      const mcResponse = await messageCentral.sendSMSOTP(targetPhone);
+      const mcResponse = await messageCentral.sendSMSOTP(targetPhone, user.otp);
       if (mcResponse.success) {
         user.verificationId = mcResponse.verificationId;
       }
@@ -570,11 +570,12 @@ const completeGoogleProfile = async (req, res, next) => {
     user.password = password;
     user.isVerified = false;
 
+    user.generateOTP(); 
     let otpSent = true;
     let otpError = null;
 
     try {
-      const mcResponse = await messageCentral.sendSMSOTP(phone);
+      const mcResponse = await messageCentral.sendSMSOTP(phone, user.otp);
       if (mcResponse.success) user.verificationId = mcResponse.verificationId;
     } catch (err) {
       otpSent = false;
@@ -650,7 +651,7 @@ const requestLoginOTP = async (req, res, next) => {
 
     try {
       user.generateOTP(); 
-      const mcResponse = await messageCentral.sendSMSOTP(phone);
+      const mcResponse = await messageCentral.sendSMSOTP(phone, user.otp);
       if (mcResponse.success) {
         user.verificationId = mcResponse.verificationId;
       }

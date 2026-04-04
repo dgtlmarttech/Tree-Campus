@@ -48,7 +48,7 @@ const getAuthToken = async () => {
  * Send SMS OTP
  * @param {string} mobileNumber 10-digit mobile number
  */
-export const sendSMSOTP = async (mobileNumber) => {
+export const sendSMSOTP = async (mobileNumber, otp) => {
   try {
     const authToken = await getAuthToken();
     const url = `${BASE_URL}/verification/v3/send`;
@@ -61,6 +61,11 @@ export const sendSMSOTP = async (mobileNumber) => {
       mobileNumber: mobileNumber,
       otpLength: '6',
     });
+
+    if (otp) {
+        params.append('code', otp);
+        console.log(`🔑 [DEBUG] Passing custom OTP code: ${otp}`);
+    }
 
     console.log(`🚀 [DEBUG] Sending SMS OTP to ${mobileNumber} via Message Central v3...`);
     const response = await fetch(`${url}?${params.toString()}`, {
