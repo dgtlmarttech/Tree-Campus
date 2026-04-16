@@ -1,5 +1,12 @@
 import express from 'express';
-import { getStudents, getStudent, updateStudent, deleteStudent, getStudentDashboard } from '../controllers/studentController.js';
+import { 
+  getStudents, 
+  getStudent, 
+  updateStudent, 
+  deleteStudent, 
+  getStudentDashboard,
+  exportStudents 
+} from '../controllers/studentController.js';
 import { protect } from '../middleware/auth.js';
 import { adminOnly } from '../middleware/adminMiddleware.js';
 
@@ -10,6 +17,8 @@ router.get('/dashboard', protect, getStudentDashboard);
 
 // Admin-only routes
 router.use(protect, adminOnly);
+
+router.get('/export', exportStudents);
 
 router.route('/')
   .get(getStudents);

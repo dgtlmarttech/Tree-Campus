@@ -16,10 +16,23 @@ const ProtectedRoute = ({ children, adminOnly = false, studentOnly = false }) =>
     return <Navigate to="/login" replace />;
   }
 
-  // ⭐ ENFORCE VERIFICATION
+  // ⭐ ENFORCE VERIFICATION (Email/Initial)
   if (user.isVerified === false) {
-    console.log('🟠 User not verified, redirecting to verification page');
+    console.log('🟠 User account not verified, redirecting to verification page');
     return <Navigate to="/verify-otp" replace state={{ email: user.email, phone: user.phone, mode: 'register' }} />;
+  }
+
+  // ⭐ ENFORCE PHONE VERIFICATION (For Google or Migrated Users)
+  const isPlaceholderPhone = (p) => !p || p === '0000000000' || p.startsWith('wp_') || p.startsWith('unlinked_');
+  
+  if (!user.isPhoneVerified) {
+    if (isPlaceholderPhone(user.phone)) {
+      console.log('🟠 User missing phone number, redirecting to profile completion');
+      return <Navigate to="/complete-profile" replace state={{ user }} />;
+    } else {
+      console.log('🟠 User phone not verified, redirecting to OTP verification');
+      return <Navigate to="/verify-otp" replace state={{ email: user.email, phone: user.phone, mode: 'verify' }} />;
+    }
   }
 
   console.log('🛡️ ProtectedRoute Check:', {

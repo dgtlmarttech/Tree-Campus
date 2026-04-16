@@ -53,6 +53,7 @@ const signup = async (req, res, next) => {
       phone,
       password,
       role: role?.toLowerCase() || 'student',
+      platform: req.body.platform,
     });
 
     let otpSent = true;
@@ -95,7 +96,7 @@ const verifyOTP = async (req, res, next) => {
 
     const user = await User.findOne({ email }).select('+otp +otpExpiry +verificationId');
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    if (user.isVerified) return res.status(400).json({ success: false, message: 'User already verified' });
+    if (user.isVerified && user.isPhoneVerified) return res.status(400).json({ success: false, message: 'User already verified' });
 
     const now = Date.now();
     const expiry = user.otpExpiry ? new Date(user.otpExpiry).getTime() : 0;
@@ -113,6 +114,7 @@ const verifyOTP = async (req, res, next) => {
     }
 
     user.isVerified = true;
+    user.isPhoneVerified = true;
     user.otp = undefined;
     user.otpExpiry = undefined;
     user.verificationId = undefined;
@@ -124,7 +126,15 @@ const verifyOTP = async (req, res, next) => {
       success: true,
       message: 'Phone verified successfully',
       data: {
-        user: { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role, isVerified: user.isVerified },
+        user: { 
+          id: user._id, 
+          name: user.name, 
+          email: user.email, 
+          phone: user.phone, 
+          role: user.role, 
+          isVerified: user.isVerified, 
+          isPhoneVerified: user.isPhoneVerified 
+        },
         ...tokens,
       },
     });
@@ -261,7 +271,9 @@ const login = async (req, res, next) => {
           email: authenticatedUser.email,
           role: userRole,
           isVerified: authenticatedUser.isVerified,
+          isPhoneVerified: authenticatedUser.isPhoneVerified || false,
           isWpMigrated: authenticatedUser.isWpMigrated || false,
+          platform: authenticatedUser.platform || 'web',
           // ✅ Don't expose wp_ placeholder to frontend — send null instead
           phone: isPlaceholderPhone(authenticatedUser.phone) ? null : authenticatedUser.phone,
           createdAt: authenticatedUser.createdAt,
@@ -511,7 +523,9 @@ const getProfile = async (req, res, next) => {
         phone: isPlaceholderPhone(user.phone) ? null : user.phone,
         role: user.role,
         isVerified: user.isVerified,
+        isPhoneVerified: user.isPhoneVerified || false,
         isWpMigrated: user.isWpMigrated || false,
+        platform: user.platform || 'web',
         profilePicture: user.profilePicture || '',
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
@@ -707,6 +721,7 @@ const loginWithOTP = async (req, res, next) => {
     if (!user.isVerified) {
       user.isVerified = true;
     }
+    user.isPhoneVerified = true;
 
     user.otp = undefined;
     user.otpExpiry = undefined;
@@ -726,7 +741,9 @@ const loginWithOTP = async (req, res, next) => {
           email: user.email,
           role: userRole,
           isVerified: user.isVerified,
+          isPhoneVerified: user.isPhoneVerified || false,
           phone: user.phone,
+          platform: user.platform || 'web',
           createdAt: user.createdAt,
           profilePicture: user.profilePicture || '',
           enrolledCourses: user.enrolledCourses || [],

@@ -88,20 +88,31 @@
       }
     };
 
-    const handleExportStudents = () => {
+    const handleExportStudents = async () => {
       try {
+        toast.loading('Preparing student export...', { id: 'export-toast' });
+        
+        const response = await api.get('/students/export');
+        const allStudents = response.data.data || [];
+
+        if (allStudents.length === 0) {
+          toast.error('No students to export', { id: 'export-toast' });
+          return;
+        }
+
         // Create CSV content
-        const headers = ['Name', 'Email', 'Phone', 'Enrollments', 'Certificates', 'Joined Date', 'Status'];
+        const headers = ['Name', 'Email', 'Phone', 'Enrollments', 'Certificates', 'Joined Date', 'Platform', 'Status'];
         const csvContent = [
           headers.join(','),
-          ...students.map(student => [
+          ...allStudents.map(student => [
             `"${student.name || 'Unknown'}"`,
             `"${student.email || 'N/A'}"`,
             `"${student.phone || 'N/A'}"`,
-            student.enrolledCourses?.length || 0,
-            student.certificates?.length || 0,
-            new Date(student.createdAt).toLocaleDateString(),
-            student.isActive ? 'Active' : 'Inactive'
+            student.enrollmentCount || 0,
+            student.certificateCount || 0,
+            new Date(student.joinedDate).toLocaleDateString(),
+            `"${student.platform || 'N/A'}"`,
+            student.status || 'Inactive'
           ].join(','))
         ].join('\n');
 
@@ -110,16 +121,16 @@
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `students_${new Date().getTime()}.csv`;
+        a.download = `total_students_${new Date().getTime()}.csv`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
         
-        toast.success('Students exported successfully');
+        toast.success(`Exported ${allStudents.length} students successfully`, { id: 'export-toast' });
       } catch (error) {
         console.error('Error exporting students:', error);
-        toast.error('Failed to export students');
+        toast.error('Failed to export total students', { id: 'export-toast' });
       }
     };
 
@@ -273,6 +284,7 @@
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enrollments</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Certificates</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Platform</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
@@ -335,6 +347,17 @@
                           <FiCalendar className="w-4 h-4" />
                           <span>{new Date(student.createdAt).toLocaleDateString()}</span>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                          student.platform === 'mobile' 
+                            ? 'bg-purple-50 text-purple-700 border border-purple-100' 
+                            : student.platform === 'web'
+                            ? 'bg-blue-50 text-blue-700 border border-blue-100'
+                            : 'bg-gray-50 text-gray-500 border border-gray-100'
+                        }`}>
+                          {student.platform || 'N/A'}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -402,6 +425,15 @@
                               : 'bg-gray-50 text-gray-500 border border-gray-100'
                           }`}>
                             Activity: {student.enrolledCourses?.length > 0 ? 'Enrolled' : 'Not Enrolled'}
+                          </span>
+                          <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-center ${
+                            student.platform === 'mobile'
+                              ? 'bg-purple-50 text-purple-700 border border-purple-100' 
+                              : student.platform === 'web'
+                              ? 'bg-blue-50 text-blue-700 border border-blue-100'
+                              : 'bg-gray-50 text-gray-500 border border-gray-100'
+                          }`}>
+                            Platform: {student.platform || 'N/A'}
                           </span>
                         </div>
                         <div className="flex gap-2 mt-1">

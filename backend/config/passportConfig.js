@@ -10,9 +10,11 @@ const configurePassport = () => {
           clientID: process.env.GOOGLE_CLIENT_ID,
           clientSecret: process.env.GOOGLE_CLIENT_SECRET,
           callbackURL: process.env.GOOGLE_CALLBACK_URL,
+          passReqToCallback: true,
         },
-        async (accessToken, refreshToken, profile, done) => {
+        async (req, accessToken, refreshToken, profile, done) => {
           try {
+            const platform = req.query.state === 'mobile' ? 'mobile' : 'web';
             // Check if user already exists
             let user = await User.findOne({ googleId: profile.id }).select('+password');
 
@@ -26,6 +28,7 @@ const configurePassport = () => {
                 if (!user.profilePicture) {
                   user.profilePicture = profile.photos[0].value;
                 }
+                user.platform = platform; // Track where they logged in from
                 await user.save();
               } else {
                 // Create new user
@@ -40,7 +43,9 @@ const configurePassport = () => {
                   phone: phone,
                   profilePicture: profile.photos[0].value,
                   isVerified: true, // Google emails are already verified
+                  isPhoneVerified: false, // Must still verify phone
                   role: 'student',
+                  platform: platform,
                 });
               }
             }

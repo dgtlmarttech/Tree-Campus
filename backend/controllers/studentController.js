@@ -530,3 +530,55 @@ export const deleteStudent = async (req, res) => {
     });
   }
 };
+// @desc    Export all students for CSV
+// @route   GET /api/students/export
+// @access  Private/Admin
+export const exportStudents = async (req, res) => {
+  try {
+    const students = await User.find({ role: 'student' })
+      .select('name email phone platform createdAt')
+      .sort('-createdAt');
+
+    // Get enrollment counts from Enrollment collection
+    const perStudentEnrollments = await Enrollment.aggregate([
+      { $group: { _id: '$user', enrollmentCount: { $sum: 1 } } }
+    ]);
+    const enrollmentMap = new Map(
+      perStudentEnrollments.map(e => [String(e._id), e.enrollmentCount])
+    );
+
+    // Get certificate counts
+    const perStudentCertificates = await Certificate.aggregate([
+      { $group: { _id: '$user', certCount: { $sum: 1 } } }
+    ]);
+    const certMap = new Map(
+      perStudentCertificates.map(c => [String(c._id), c.certCount])
+    );
+
+    const exportData = students.map(student => {
+      const s = student.toObject();
+      return {
+        _id: s._id,
+        name: s.name || 'Unknown',
+        email: s.email || 'N/A',
+        phone: s.phone || 'N/A',
+        enrollmentCount: enrollmentMap.get(String(s._id)) || 0,
+        certificateCount: certMap.get(String(s._id)) || 0,
+        joinedDate: s.createdAt,
+        platform: s.platform || 'N/A',
+        status: (enrollmentMap.get(String(s._id)) || 0) > 0 ? 'Active' : 'Inactive'
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      count: exportData.length,
+      data: exportData
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};

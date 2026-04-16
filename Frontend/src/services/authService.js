@@ -8,7 +8,8 @@ export const authService = {
   // -------------------------
   register: async (userData) => {
     try {
-      const res = await api.post('/auth/signup', userData);
+      const payload = { ...userData, platform: 'web' };
+      const res = await api.post('/auth/signup', payload);
       return res.data; // success, message, userId, email
     } catch (err) {
       throw err.response?.data || err;

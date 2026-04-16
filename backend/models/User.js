@@ -91,6 +91,10 @@ const userSchema = new mongoose.Schema(
     profilePicture: { type: String, default: "" },
     age: { type: Number },
     education: { type: String },
+    platform: { 
+      type: String, 
+      enum: ["web", "mobile"]
+    },
     savedBlogs: [
       { type: mongoose.Schema.Types.ObjectId, ref: "Blog" }
     ],
