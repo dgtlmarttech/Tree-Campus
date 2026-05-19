@@ -27,6 +27,7 @@ export default defineConfig({
     devSourcemap: false
   },
   build: {
+    sourcemap: false,
     chunkSizeWarningLimit: 2500,
     
     rollupOptions: {

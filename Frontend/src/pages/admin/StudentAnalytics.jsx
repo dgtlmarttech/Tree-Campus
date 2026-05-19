@@ -100,24 +100,48 @@
           return;
         }
 
-        // Create CSV content
-        const headers = ['Name', 'Email', 'Phone', 'Enrollments', 'Certificates', 'Joined Date', 'Platform', 'Status'];
+        // CSV Escape helper function to prevent broken columns/rows due to commas or quotes
+        const escapeCSV = (val) => {
+          if (val === null || val === undefined) return '""';
+          const str = String(val).trim();
+          const escaped = str.replace(/"/g, '""');
+          return `"${escaped}"`;
+        };
+
+        // Create CSV content with all user details
+        const headers = [
+          'Student ID',
+          'Name',
+          'Email',
+          'Phone',
+          'Age',
+          'Education',
+          'Enrollments',
+          'Certificates',
+          'Joined Date',
+          'Platform',
+          'Status'
+        ];
+
         const csvContent = [
           headers.join(','),
           ...allStudents.map(student => [
-            `"${student.name || 'Unknown'}"`,
-            `"${student.email || 'N/A'}"`,
-            `"${student.phone || 'N/A'}"`,
+            escapeCSV(student._id),
+            escapeCSV(student.name || 'Unknown'),
+            escapeCSV(student.email || 'N/A'),
+            escapeCSV(student.phone || 'N/A'),
+            escapeCSV(student.age || 'N/A'),
+            escapeCSV(student.education || 'N/A'),
             student.enrollmentCount || 0,
             student.certificateCount || 0,
-            new Date(student.joinedDate).toLocaleDateString(),
-            `"${student.platform || 'N/A'}"`,
-            student.status || 'Inactive'
+            escapeCSV(student.joinedDate ? new Date(student.joinedDate).toLocaleDateString() : 'N/A'),
+            escapeCSV(student.platform || 'N/A'),
+            escapeCSV(student.status || 'Inactive')
           ].join(','))
         ].join('\n');
 
-        // Create blob and download
-        const blob = new Blob([csvContent], { type: 'text/csv' });
+        // Create blob with UTF-8 BOM to ensure correct encoding in Excel
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;

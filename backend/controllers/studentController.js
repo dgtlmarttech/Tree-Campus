@@ -536,7 +536,7 @@ export const deleteStudent = async (req, res) => {
 export const exportStudents = async (req, res) => {
   try {
     const students = await User.find({ role: 'student' })
-      .select('name email phone platform createdAt')
+      .select('name email phone age education platform createdAt')
       .sort('-createdAt');
 
     // Get enrollment counts from Enrollment collection
@@ -562,6 +562,8 @@ export const exportStudents = async (req, res) => {
         name: s.name || 'Unknown',
         email: s.email || 'N/A',
         phone: s.phone || 'N/A',
+        age: s.age || 'N/A',
+        education: s.education || 'N/A',
         enrollmentCount: enrollmentMap.get(String(s._id)) || 0,
         certificateCount: certMap.get(String(s._id)) || 0,
         joinedDate: s.createdAt,

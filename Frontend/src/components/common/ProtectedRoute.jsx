@@ -22,10 +22,10 @@ const ProtectedRoute = ({ children, adminOnly = false, studentOnly = false }) =>
     return <Navigate to="/verify-otp" replace state={{ email: user.email, phone: user.phone, mode: 'register' }} />;
   }
 
-  // ⭐ ENFORCE PHONE VERIFICATION (For Google or Migrated Users)
+  // ⭐ ENFORCE PHONE VERIFICATION (Only for students, skip for admins)
   const isPlaceholderPhone = (p) => !p || p === '0000000000' || p.startsWith('wp_') || p.startsWith('unlinked_');
   
-  if (!user.isPhoneVerified) {
+  if (user.role !== 'admin' && !user.isPhoneVerified) {
     if (isPlaceholderPhone(user.phone)) {
       console.log('🟠 User missing phone number, redirecting to profile completion');
       return <Navigate to="/complete-profile" replace state={{ user }} />;
