@@ -4,6 +4,14 @@ import { v4 as uuidv4 } from 'uuid';
 
 const MAX_CONCURRENT_MEETINGS = 5;
 
+// Helper to dynamically convert Zoom join URLs to Web Client URLs
+const convertToWebClientLink = (link) => {
+  if (link && link.includes('/j/')) {
+    return link.replace('/j/', '/wc/join/');
+  }
+  return link;
+};
+
 // @desc    Get all live classes
 // @route   GET /api/live-classes
 // @access  Public
@@ -13,10 +21,18 @@ export const getLiveClasses = async (req, res) => {
       .populate('courseId', 'title thumbnail')
       .sort('scheduledAt');
 
+    const modifiedClasses = liveClasses.map(lc => {
+      const classObj = lc.toObject();
+      if (classObj.platform === 'Zoom' && classObj.link) {
+        classObj.link = convertToWebClientLink(classObj.link);
+      }
+      return classObj;
+    });
+
     res.status(200).json({
       success: true,
-      count: liveClasses.length,
-      data: liveClasses
+      count: modifiedClasses.length,
+      data: modifiedClasses
     });
   } catch (error) {
     res.status(500).json({
@@ -41,9 +57,14 @@ export const getLiveClass = async (req, res) => {
       });
     }
 
+    const classObj = liveClass.toObject();
+    if (classObj.platform === 'Zoom' && classObj.link) {
+      classObj.link = convertToWebClientLink(classObj.link);
+    }
+
     res.status(200).json({
       success: true,
-      data: liveClass
+      data: classObj
     });
   } catch (error) {
     res.status(500).json({
