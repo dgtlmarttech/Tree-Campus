@@ -350,3 +350,100 @@ export const sendAccountDeletionConfirmation = async (email, name) => {
     throw error;
   }
 };
+
+// Wrapper function for teacher application confirmation
+export const sendTeacherApplicationConfirmation = async (email, name) => {
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+      <h2 style="color: #28a745; text-align: center;">Teacher Application Received</h2>
+      <p>Hi ${name},</p>
+      <p>Thank you for applying to be an online educator at TreeCampus!</p>
+      <p>Your application and materials (resume and demo video) have been successfully received and are under review by our administration team.</p>
+      <p>We will notify you via email as soon as there is an update on your application status.</p>
+      <p>Best regards,<br>TreeCampus Team</p>
+    </div>
+  `;
+
+  const data = {
+    sender: { email: senderEmail, name: "Treecampus" },
+    to: [{ email: email, name: name }],
+    subject: 'Teacher Application Received - TreeCampus',
+    htmlContent: htmlContent,
+  };
+
+  try {
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": apiKey,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Email failed: ${errorText}`);
+    }
+    console.log(`✅ Teacher application confirmation email sent to ${email}`);
+  } catch (error) {
+    console.error("Teacher application email error:", error);
+    throw error;
+  }
+};
+
+// Wrapper function for teacher status updates
+export const sendTeacherStatusUpdate = async (email, name, status) => {
+  let statusText = '';
+  let color = '#333';
+  if (status === 'approved') {
+    statusText = `
+      <p>We are absolutely thrilled to inform you that your application to join the teaching faculty at TreeCampus has been <strong>Approved</strong>! 🎉</p>
+      <p>Our team will contact you shortly regarding the onboarding process, schedule, and teaching details.</p>
+    `;
+    color = '#28a745';
+  } else {
+    statusText = `
+      <p>Thank you for your interest and the time you spent applying to teach at TreeCampus.</p>
+      <p>We have carefully reviewed your application, resume, and demo video. Unfortunately, at this time, we have decided not to move forward with your application.</p>
+      <p>We appreciate your efforts and wish you all the best in your future endeavors.</p>
+    `;
+    color = '#dc3545';
+  }
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+      <h2 style="color: ${color}; text-align: center;">Teacher Application Status Update</h2>
+      <p>Hi ${name},</p>
+      ${statusText}
+      <p>Best regards,<br>TreeCampus Team</p>
+    </div>
+  `;
+
+  const data = {
+    sender: { email: senderEmail, name: "Treecampus" },
+    to: [{ email: email, name: name }],
+    subject: `Teacher Application Status: ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+    htmlContent: htmlContent,
+  };
+
+  try {
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": apiKey,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Email failed: ${errorText}`);
+    }
+    console.log(`✅ Teacher status update email sent to ${email} with status: ${status}`);
+  } catch (error) {
+    console.error("Teacher status update email error:", error);
+    throw error;
+  }
+};

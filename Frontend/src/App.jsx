@@ -19,6 +19,7 @@ import Register from './components/auth/Register';
 import Profile from './components/auth/Profile';
 import HowItWorks from './pages/HowItWorks';
 import Volunteer from './pages/Volunteer';
+import ApplyTeacher from './pages/ApplyTeacher';
 import AccountDeletionForm from './pages/UserAccountDeletion';
 import SchoolRegistration from './pages/SchoolRegistration';
 import LessonView from './pages/LessonView';
@@ -49,6 +50,7 @@ import LiveClassManagement from './pages/admin/LiveClassManagement';
 import CourseBuilder from './pages/admin/CourseBuilder';
 import SchoolRegistrationManagement from './pages/admin/SchoolRegistrationManagement';
 import VolunteerManagement from './pages/admin/VolunteerManagement';
+import TeacherManagement from './pages/admin/TeacherManagement';
 import AccountDeletionManagement from './pages/admin/AccountDeletionManagement';
 import ContestManagement from './pages/admin/ContestManagement';
 import CouponManagement from './pages/admin/CouponManagement';
@@ -147,6 +149,7 @@ function App() {
   <Route path="/complete-profile" element={<CompleteProfile />} />
   <Route path="/howitworks" element={<HowItWorks />} />
   <Route path="/volunteer" element={<Volunteer />} />
+  <Route path="/apply-teacher" element={<ApplyTeacher />} />
   <Route path="/englishspeaking" element={<EnglishSpeaking />} />
   <Route path="/accountdeletion" element={<AccountDeletionForm />} />
   <Route path="/user-account-deletion" element={<UserAccountDeletionNew />} />
@@ -281,6 +284,15 @@ function App() {
     element={
       <ProtectedRoute adminOnly>
         <VolunteerManagement />
+      </ProtectedRoute>
+    }
+  />
+
+  <Route 
+    path="/admin/teachers"
+    element={
+      <ProtectedRoute adminOnly>
+        <TeacherManagement />
       </ProtectedRoute>
     }
   />

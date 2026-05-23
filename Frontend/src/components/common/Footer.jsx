@@ -209,7 +209,7 @@ const Footer = () => {
             </h4>
             <ul className="space-y-3">
               <li>
-                <Link to="/become-teacher" className="text-gray-400 hover:text-white transition-colors duration-300 text-sm flex items-center">
+                <Link to="/apply-teacher" className="text-gray-400 hover:text-white transition-colors duration-300 text-sm flex items-center">
                   <span style={{ width: '6px', height: '6px', backgroundColor: primaryColor, borderRadius: '50%', marginRight: '10px' }}></span>
                   Become a Teacher
                 </Link>

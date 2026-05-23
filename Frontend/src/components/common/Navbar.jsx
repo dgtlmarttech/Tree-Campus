@@ -54,6 +54,7 @@ export default function Navbar() {
     liveClasses: "/live-classes",
     EnglishSpeaking: "/englishspeaking",
     volunteer: "/volunteer",
+    applyTeacher: "/apply-teacher",
     AccountDeletionForm: "/accountdeletion",
     howItWorks: "/howitworks",
     termsAndConditions: "/terms-and-conditions",
@@ -86,6 +87,11 @@ export default function Navbar() {
           type: "link", 
           label: "Volunteer",
           href: navigation.volunteer
+        },
+        {
+          type: "link", 
+          label: "Apply as Teacher",
+          href: navigation.applyTeacher
         },
         {
           type: "link",

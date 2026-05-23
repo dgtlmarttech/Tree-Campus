@@ -27,6 +27,8 @@ import assignmentRoutes from './routes/assignmentRoutes.js';
 import contestRoutes from './routes/contestRoutes.js';
 import adminContestRoutes from './routes/adminContestRoutes.js';
 import zoomWebhooks from './routes/zoomWebhooks.js';
+import teacherApplicationRoutes from './routes/teacherApplicationRoutes.js';
+
 import session from 'express-session';
 import passport from 'passport';
 import configurePassport from './config/passportConfig.js';
@@ -116,6 +118,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/volunteer', volunteerRoutes);
+app.use('/api/teachers', teacherApplicationRoutes);
 app.use('/api/account-deletion-request', accountDeletion);
 app.use('/api/registerschool',registerSchool);
 app.use('/api/assignments', assignmentRoutes);

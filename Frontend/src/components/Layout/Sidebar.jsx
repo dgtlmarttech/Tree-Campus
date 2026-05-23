@@ -48,6 +48,7 @@ const adminMenuItems = [
   },
   { path: "/admin/schools", icon: FiSettings, label: "School Registrations", section: "management" },
   { path: "/admin/volunteers", icon: FiUsers, label: "Volunteers", section: "management" },
+  { path: "/admin/teachers", icon: FiUsers, label: "Teacher Applications", section: "management" },
   { path: "/admin/account-deletions", icon: FiUserX, label: "Account Deletions", section: "management" },
   { path: "/admin/management", icon: FiUsers, label: "Admin Management", section: "management" },
 ];
