@@ -18,6 +18,7 @@ export default function ApplyTeacher() {
   const [applicationId, setApplicationId] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [timer, setTimer] = useState(300); // 5 minutes
+  const [resendTimer, setResendTimer] = useState(60); // 60 seconds cooldown for resending
   const [resendDisabled, setResendDisabled] = useState(true);
   const [pageLoaded, setPageLoaded] = useState(false);
   const [errors, setErrors] = useState({});
@@ -26,7 +27,7 @@ export default function ApplyTeacher() {
     setPageLoaded(true);
   }, []);
 
-  // Timer logic for OTP
+  // Timer logic for OTP Expiry
   useEffect(() => {
     let interval = null;
     if (step === 2 && timer > 0) {
@@ -34,11 +35,24 @@ export default function ApplyTeacher() {
         setTimer((prev) => prev - 1);
       }, 1000);
     } else if (timer === 0) {
-      setResendDisabled(false);
       clearInterval(interval);
     }
     return () => clearInterval(interval);
   }, [step, timer]);
+
+  // Timer logic for Resend Cooldown
+  useEffect(() => {
+    let interval = null;
+    if (step === 2 && resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    } else if (resendTimer === 0) {
+      setResendDisabled(false);
+      clearInterval(interval);
+    }
+    return () => clearInterval(interval);
+  }, [step, resendTimer]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -133,7 +147,9 @@ export default function ApplyTeacher() {
         setApplicationId(result.applicationId);
         setStep(2); // Move to OTP verification step
         setTimer(300);
+        setResendTimer(60);
         setResendDisabled(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to top!
         toast.success('Files uploaded! OTP sent successfully via SMS.');
       } else {
         toast.error(result.message || 'Submission failed. Please try again.');
@@ -187,6 +203,7 @@ export default function ApplyTeacher() {
 
       if (response.ok) {
         setStep(3); // Success Step!
+        window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to top!
         toast.success(result.message);
       } else {
         toast.error(result.message || 'OTP verification failed.');
@@ -201,7 +218,8 @@ export default function ApplyTeacher() {
 
   const handleResendOtp = async () => {
     setResendDisabled(true);
-    setTimer(300);
+    setResendTimer(60); // Cooldown of 60 seconds
+    setTimer(300); // Reset main OTP lifetime timer to 5 mins
 
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/teachers/resend-otp`, {
@@ -398,7 +416,17 @@ export default function ApplyTeacher() {
                 <div className="w-16 h-16 bg-teal-50 text-[#14B8A6] rounded-full flex items-center justify-center text-3xl mx-auto mb-6">📱</div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Verify Your Phone</h2>
                 <p className="text-gray-500 text-sm mb-6">
-                  We have sent a 6-digit OTP code to the mobile number ending in <span className="font-bold text-gray-800">***{formData.phone.slice(-4)}</span>.
+                  We have sent a 6-digit OTP code to <span className="font-bold text-gray-800">+91 {formData.phone}</span>.
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStep(1);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="block mx-auto mt-2 text-xs font-bold text-[#14B8A6] hover:text-[#0F766E] hover:underline cursor-pointer"
+                  >
+                    ✏️ Wrong number? Edit details
+                  </button>
                 </p>
 
                 <form onSubmit={handleVerifyOtp} className="space-y-6">
@@ -427,7 +455,7 @@ export default function ApplyTeacher() {
                       onClick={handleResendOtp}
                       className={`font-bold transition-all ${resendDisabled ? 'text-gray-300 cursor-not-allowed' : 'text-[#14B8A6] hover:text-[#0F766E]'}`}
                     >
-                      Resend OTP
+                      {resendDisabled ? `Resend OTP (${resendTimer}s)` : 'Resend OTP'}
                     </button>
                   </div>
 
