@@ -12,11 +12,17 @@ import {
  */
 const uploadToCloudinary = (fileBuffer, folder, resourceType, fileName) => {
   return new Promise((resolve, reject) => {
+    const extIndex = fileName.lastIndexOf('.');
+    const baseName = extIndex !== -1 ? fileName.substring(0, extIndex) : fileName;
+    const extension = extIndex !== -1 ? fileName.substring(extIndex) : '';
+    const cleanBaseName = baseName.replace(/[^a-zA-Z0-9-_]/g, '_');
+    const publicId = `${cleanBaseName}-${Date.now()}${extension}`;
+
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: folder,
         resource_type: resourceType,
-        public_id: `${fileName.split('.')[0]}-${Date.now()}`
+        public_id: publicId
       },
       (error, result) => {
         if (error) {
@@ -47,7 +53,7 @@ export const applyTeacher = async (req, res, next) => {
     if (!req.files || !req.files.resume || !req.files.demoVideo) {
       return res.status(400).json({
         success: false,
-        message: 'Both resume (PDF) and 1-minute demo video are required.'
+        message: 'Both resume (PDF/Word/Image) and 1-minute demo video are required.'
       });
     }
 
@@ -69,7 +75,9 @@ export const applyTeacher = async (req, res, next) => {
         // Clean up previous unverified submission assets
         try {
           if (existingApp.resumePublicId) {
-            await cloudinary.uploader.destroy(existingApp.resumePublicId, { resource_type: 'raw' });
+            await cloudinary.uploader.destroy(existingApp.resumePublicId, { 
+              resource_type: existingApp.resumeResourceType || 'raw' 
+            });
           }
           if (existingApp.demoVideoPublicId) {
             await cloudinary.uploader.destroy(existingApp.demoVideoPublicId, { resource_type: 'video' });
@@ -81,13 +89,16 @@ export const applyTeacher = async (req, res, next) => {
       }
     }
 
-    console.log(`📂 Uploading resume (${resumeFile.originalname}) and video (${videoFile.originalname}) to Cloudinary...`);
+    const isImage = resumeFile.mimetype.startsWith('image/');
+    const resumeResourceType = isImage ? 'image' : 'raw';
 
-    // 1. Upload Resume (PDF) as raw format
+    console.log(`📂 Uploading resume (${resumeFile.originalname}) as ${resumeResourceType} and video (${videoFile.originalname}) to Cloudinary...`);
+
+    // 1. Upload Resume as appropriate format
     const resumeUpload = await uploadToCloudinary(
       resumeFile.buffer,
       'treecampus/teacher_applications/resumes',
-      'raw',
+      resumeResourceType,
       resumeFile.originalname
     );
 
@@ -106,6 +117,7 @@ export const applyTeacher = async (req, res, next) => {
       phone,
       resume: resumeUpload.secure_url,
       resumePublicId: resumeUpload.public_id,
+      resumeResourceType,
       demoVideo: videoUpload.secure_url,
       demoVideoPublicId: videoUpload.public_id,
       isPhoneVerified: false
@@ -134,7 +146,7 @@ export const applyTeacher = async (req, res, next) => {
     if (!otpSent) {
       // Clean up uploads since OTP trigger failed
       try {
-        await cloudinary.uploader.destroy(resumeUpload.public_id, { resource_type: 'raw' });
+        await cloudinary.uploader.destroy(resumeUpload.public_id, { resource_type: resumeResourceType });
         await cloudinary.uploader.destroy(videoUpload.public_id, { resource_type: 'video' });
         await application.deleteOne();
       } catch (cleanupErr) {
@@ -371,7 +383,9 @@ export const deleteTeacherApplication = async (req, res, next) => {
     // Clean up uploaded files in Cloudinary
     try {
       if (application.resumePublicId) {
-        await cloudinary.uploader.destroy(application.resumePublicId, { resource_type: 'raw' });
+        await cloudinary.uploader.destroy(application.resumePublicId, { 
+          resource_type: application.resumeResourceType || 'raw' 
+        });
       }
       if (application.demoVideoPublicId) {
         await cloudinary.uploader.destroy(application.demoVideoPublicId, { resource_type: 'video' });

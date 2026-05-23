@@ -22,10 +22,18 @@ const upload = multer({
   },
   fileFilter: (req, file, cb) => {
     if (file.fieldname === 'resume') {
-      if (file.mimetype === 'application/pdf') {
+      const allowedMimes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg',
+        'image/png',
+        'image/webp'
+      ];
+      if (allowedMimes.includes(file.mimetype)) {
         cb(null, true);
       } else {
-        cb(new Error('Resume must be a PDF file.'));
+        cb(new Error('Resume must be a PDF, DOC, DOCX, or Image file.'));
       }
     } else if (file.fieldname === 'demoVideo') {
       if (file.mimetype.startsWith('video/')) {

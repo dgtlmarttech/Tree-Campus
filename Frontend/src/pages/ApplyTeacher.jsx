@@ -76,9 +76,18 @@ export default function ApplyTeacher() {
     }
 
     if (!resume) {
-      newErrors.resume = 'Resume PDF is required';
-    } else if (resume.type !== 'application/pdf') {
-      newErrors.resume = 'Resume must be a PDF file';
+      newErrors.resume = 'Resume is required';
+    } else {
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      ];
+      const isAllowedDoc = allowedTypes.includes(resume.type);
+      const isImage = resume.type.startsWith('image/');
+      if (!isAllowedDoc && !isImage) {
+        newErrors.resume = 'Resume must be a PDF, Word document, or Image file';
+      }
     }
 
     if (!demoVideo) {
@@ -351,22 +360,22 @@ export default function ApplyTeacher() {
                     </div>
                   </div>
 
-                  {/* Resume PDF */}
+                  {/* Resume File */}
                   <div className="space-y-1">
-                    <label className="block text-sm font-semibold text-gray-700">Resume File (PDF) *</label>
+                    <label className="block text-sm font-semibold text-gray-700">Resume File (PDF, Word, or Image) *</label>
                     <div className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors relative hover:bg-teal-50/20 ${errors.resume ? 'border-red-300 bg-red-50/10' : 'border-gray-200 bg-white'}`}>
                       <input
                         type="file"
                         name="resume"
-                        accept=".pdf"
+                        accept=".pdf,.doc,.docx,image/*"
                         onChange={handleFileChange}
                         className="absolute inset-0 opacity-0 cursor-pointer"
                       />
                       <span className="text-2xl block mb-2">📄</span>
                       <span className="block text-sm text-gray-600 font-semibold mb-1">
-                        {resume ? resume.name : 'Upload your resume PDF'}
+                        {resume ? resume.name : 'Upload your resume file'}
                       </span>
-                      <span className="block text-xs text-gray-400">PDF files only (Maximum 5MB)</span>
+                      <span className="block text-xs text-gray-400">PDF, DOC, DOCX, PNG, JPG, JPEG, WEBP (Maximum 5MB)</span>
                     </div>
                     {errors.resume && <p className="text-xs text-red-500 font-medium">{errors.resume}</p>}
                   </div>

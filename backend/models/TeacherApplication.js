@@ -22,11 +22,16 @@ const teacherApplicationSchema = new mongoose.Schema(
     },
     resume: {
       type: String,
-      required: [true, 'Resume is required'] // URL of PDF uploaded to Cloudinary
+      required: [true, 'Resume is required'] // URL of Resume uploaded to Cloudinary
     },
     resumePublicId: {
       type: String,
       required: true
+    },
+    resumeResourceType: {
+      type: String,
+      enum: ['raw', 'image'],
+      default: 'raw'
     },
     demoVideo: {
       type: String,

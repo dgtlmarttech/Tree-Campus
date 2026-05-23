@@ -11,13 +11,22 @@ import {
   FiPlay,
   FiFileText,
   FiChevronLeft,
-  FiChevronRight
+  FiChevronRight,
+  FiDownload
 } from 'react-icons/fi';
 import DashboardLayout from '../../components/Layout/DashboardLayout';
 import Modal from '../../components/common/Modal';
 import toast from 'react-hot-toast';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+const getDownloadUrl = (url) => {
+  if (!url) return '';
+  if (url.includes('/upload/')) {
+    return url.replace('/upload/', '/upload/fl_attachment/');
+  }
+  return url;
+};
 
 const TeacherManagement = () => {
   const [applications, setApplications] = useState([]);
@@ -340,9 +349,20 @@ const TeacherManagement = () => {
 
             {/* Embedded 1-Min Demo Video Player */}
             <div className="space-y-2">
-              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
-                <FiPlay className="text-[#14B8A6]" /> 1-Minute Demo Video
-              </h4>
+              <div className="flex justify-between items-center">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                  <FiPlay className="text-[#14B8A6]" /> 1-Minute Demo Video
+                </h4>
+                <a
+                  href={getDownloadUrl(selectedApp.demoVideo)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-bold text-[#14B8A6] hover:text-[#0F766E] border border-teal-100 bg-teal-50 px-3 py-1 rounded-lg transition-colors flex items-center gap-1"
+                  title="Download Video"
+                >
+                  <FiDownload /> Download Video
+                </a>
+              </div>
               <div className="relative rounded-2xl overflow-hidden bg-black aspect-video shadow-md border border-gray-200">
                 <video
                   src={selectedApp.demoVideo}
@@ -353,30 +373,51 @@ const TeacherManagement = () => {
               </div>
             </div>
 
-            {/* Resume Embed / PDF Action */}
+            {/* Resume Embed / Portfolio Action */}
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
-                  <FiFileText className="text-[#14B8A6]" /> Resume (PDF Portfolio)
+                  <FiFileText className="text-[#14B8A6]" /> Resume Portfolio
                 </h4>
-                <a
-                  href={selectedApp.resume}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs font-bold text-[#14B8A6] hover:text-[#0F766E] border border-teal-100 bg-teal-50 px-3 py-1 rounded-lg transition-colors flex items-center gap-1"
-                >
-                  <FiEye /> Open PDF in New Tab
-                </a>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={selectedApp.resume}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-bold text-[#14B8A6] hover:text-[#0F766E] border border-teal-100 bg-teal-50 px-3 py-1 rounded-lg transition-colors flex items-center gap-1"
+                  >
+                    <FiEye /> Open in New Tab
+                  </a>
+                  <a
+                    href={getDownloadUrl(selectedApp.resume)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-bold text-white hover:bg-[#0F766E] bg-[#14B8A6] px-3 py-1 rounded-lg transition-all flex items-center gap-1 shadow-sm active:scale-95"
+                    title="Download Resume"
+                  >
+                    <FiDownload /> Download Resume
+                  </a>
+                </div>
               </div>
 
-              {/* PDF Preview container */}
-              <div className="w-full h-[350px] border border-gray-200 rounded-xl overflow-hidden bg-gray-100 shadow-sm relative">
-                <iframe
-                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(selectedApp.resume)}&embedded=true`}
-                  className="w-full h-full border-none"
-                  title="Resume PDF Viewer"
-                />
-              </div>
+              {/* Preview container */}
+              {selectedApp.resumeResourceType === 'image' || /\.(jpg|jpeg|png|webp|gif)/i.test(selectedApp.resume) ? (
+                <div className="w-full h-[350px] border border-gray-200 rounded-xl overflow-hidden bg-gray-50 shadow-sm relative flex items-center justify-center p-2">
+                  <img
+                    src={selectedApp.resume}
+                    alt="Resume Portfolio"
+                    className="max-w-full max-h-full object-contain rounded-lg"
+                  />
+                </div>
+              ) : (
+                <div className="w-full h-[350px] border border-gray-200 rounded-xl overflow-hidden bg-gray-100 shadow-sm relative">
+                  <iframe
+                    src={`https://docs.google.com/viewer?url=${encodeURIComponent(selectedApp.resume)}&embedded=true`}
+                    className="w-full h-full border-none"
+                    title="Resume Viewer"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Action Dialog Controls */}

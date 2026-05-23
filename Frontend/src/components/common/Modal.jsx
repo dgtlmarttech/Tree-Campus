@@ -3,7 +3,19 @@ import { createPortal } from 'react-dom';
 import { FiX } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const Modal = ({ isOpen, onClose, title, children, maxWidth = 'max-w-2xl' }) => {
+const Modal = ({ isOpen, onClose, title, children, maxWidth, size }) => {
+  // Map size to standard Tailwind max-widths for backward compatibility
+  const sizeClasses = {
+    xs: 'max-w-xs',
+    sm: 'max-w-md',
+    md: 'max-w-2xl',
+    lg: 'max-w-4xl',
+    xl: 'max-w-6xl',
+    '2xl': 'max-w-7xl',
+    full: 'max-w-full',
+  };
+  const resolvedMaxWidth = maxWidth || sizeClasses[size] || 'max-w-2xl';
+
   // Prevent body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -36,7 +48,7 @@ const Modal = ({ isOpen, onClose, title, children, maxWidth = 'max-w-2xl' }) => 
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.2 }}
-          className={`relative w-full ${maxWidth} bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]`}
+          className={`relative w-full ${resolvedMaxWidth} bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
