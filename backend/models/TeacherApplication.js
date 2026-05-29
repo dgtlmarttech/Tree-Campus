@@ -56,18 +56,23 @@ const teacherApplicationSchema = new mongoose.Schema(
     },
     createdAt: {
       type: Date,
-      default: Date.now,
-      expires: 86400 // Automatically delete incomplete applications after 24 hours
+      default: Date.now
+    },
+    expireAt: {
+      type: Date,
+      default: () => Date.now() + 86400000, // 24 hours from now
+      expires: 0 // Document expires when current time >= expireAt
     }
   },
   {
-    timestamps: true
+    timestamps: true,
+    autoIndex: false
   }
 );
 
 teacherApplicationSchema.pre('save', function () {
   if (this.isPhoneVerified) {
-    this.createdAt = undefined;
+    this.expireAt = undefined;
   }
 });
 

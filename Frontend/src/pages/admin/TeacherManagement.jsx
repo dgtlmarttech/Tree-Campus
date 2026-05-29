@@ -41,6 +41,12 @@ const TeacherManagement = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  const [stats, setStats] = useState({
+    totalVerified: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0
+  });
   const limit = 10;
 
   useEffect(() => {
@@ -61,10 +67,11 @@ const TeacherManagement = () => {
         }
       );
       
-      const { data, total, pages } = response.data;
+      const { data, total, pages, stats: fetchedStats } = response.data;
       setApplications(data || []);
       setTotalItems(total || 0);
       setTotalPages(pages || 1);
+      if (fetchedStats) setStats(fetchedStats);
       setLastRefresh(new Date());
     } catch (error) {
       console.error('Error fetching teacher applications:', error);
@@ -155,10 +162,10 @@ const TeacherManagement = () => {
         {/* Stats Blocks */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {[
-            { label: 'Total Verified', val: totalItems, bg: 'bg-teal-50 text-teal-700 border-teal-100', dot: 'bg-teal-500' },
-            { label: 'Pending Review', val: applications.filter(a => a.status === 'pending').length, bg: 'bg-amber-50 text-amber-700 border-amber-100', dot: 'bg-amber-500' },
-            { label: 'Approved Teachers', val: applications.filter(a => a.status === 'approved').length, bg: 'bg-emerald-50 text-emerald-700 border-emerald-100', dot: 'bg-emerald-500' },
-            { label: 'Rejected Entries', val: applications.filter(a => a.status === 'rejected').length, bg: 'bg-rose-50 text-rose-700 border-rose-100', dot: 'bg-rose-500' }
+            { label: 'Total Verified', val: stats.totalVerified, bg: 'bg-teal-50 text-teal-700 border-teal-100', dot: 'bg-teal-500' },
+            { label: 'Pending Review', val: stats.pending, bg: 'bg-amber-50 text-amber-700 border-amber-100', dot: 'bg-amber-500' },
+            { label: 'Approved Teachers', val: stats.approved, bg: 'bg-emerald-50 text-emerald-700 border-emerald-100', dot: 'bg-emerald-500' },
+            { label: 'Rejected Entries', val: stats.rejected, bg: 'bg-rose-50 text-rose-700 border-rose-100', dot: 'bg-rose-500' }
           ].map((stat, idx) => (
             <div key={idx} className={`p-5 rounded-2xl border bg-white flex items-center justify-between shadow-sm`}>
               <div>
@@ -243,7 +250,7 @@ const TeacherManagement = () => {
                         <div className="text-xs text-gray-500 mt-0.5">+91 {app.phone}</div>
                       </td>
                       <td className="py-4 px-6 text-gray-500 font-medium">
-                        {new Date(app.createdAt).toLocaleDateString(undefined, {
+                        {new Date(app.createdAt || app.updatedAt).toLocaleDateString(undefined, {
                           year: 'numeric',
                           month: 'short',
                           day: 'numeric'
@@ -336,7 +343,7 @@ const TeacherManagement = () => {
               <div>
                 <span className="block text-xs text-gray-400 font-bold uppercase">Applied Date</span>
                 <span className="font-bold text-gray-900 mt-1 block">
-                  {new Date(selectedApp.createdAt).toLocaleDateString(undefined, {
+                  {new Date(selectedApp.createdAt || selectedApp.updatedAt).toLocaleDateString(undefined, {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',

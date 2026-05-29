@@ -303,9 +303,18 @@ export const getTeacherApplications = async (req, res, next) => {
     const applications = await TeacherApplication.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit))
+      .lean();
 
     const total = await TeacherApplication.countDocuments(query);
+
+    const baseQuery = { isPhoneVerified: true };
+    const [totalVerified, pending, approved, rejected] = await Promise.all([
+      TeacherApplication.countDocuments(baseQuery),
+      TeacherApplication.countDocuments({ ...baseQuery, status: 'pending' }),
+      TeacherApplication.countDocuments({ ...baseQuery, status: 'approved' }),
+      TeacherApplication.countDocuments({ ...baseQuery, status: 'rejected' })
+    ]);
 
     res.status(200).json({
       success: true,
@@ -313,6 +322,12 @@ export const getTeacherApplications = async (req, res, next) => {
       total,
       page: parseInt(page),
       pages: Math.ceil(total / limit),
+      stats: {
+        totalVerified,
+        pending,
+        approved,
+        rejected
+      },
       data: applications
     });
 
