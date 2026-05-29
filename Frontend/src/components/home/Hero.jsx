@@ -133,7 +133,7 @@ const Hero = () => {
           "Real-time Speech Practice",
           "Instant Feedback and Correction"
         ],
-        image: "http://treecampus.in/wp-content/uploads/2021/11/slider-2.png",
+        image: "https://res.cloudinary.com/dbbll23jz/image/upload/v1766825924/2106.i201.007.F.m004.c9.call_center_technical_support_isometric-removebg-preview_xqvrxm.png",
         icon: "🤖"
       }
     ],
