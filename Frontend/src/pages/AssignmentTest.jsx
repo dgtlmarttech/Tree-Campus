@@ -238,8 +238,8 @@ const AssignmentTest = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 py-6 sm:py-8">
+      <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* Back Button */}
         <div className="mb-4">
           <button
@@ -272,94 +272,120 @@ const AssignmentTest = () => {
                 </div>
               )}
             </div>
-            {testStarted && (
+            {testStarted ? (
               <div className={`text-3xl font-bold p-3 rounded-lg ${
                 timeRemaining < 300 ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
               }`}>
                 {formatTime(timeRemaining)}
               </div>
+            ) : (
+              <div className="hidden sm:block">
+                  <button
+                    onClick={() => setTestStarted(true)}
+                    className="bg-[#115E59] text-white px-6 py-2.5 rounded-lg font-bold hover:bg-[#0F766E] transition-all flex items-center gap-2 shadow-sm whitespace-nowrap cursor-pointer"
+                  >
+                    <FiPlay className="w-4 h-4 fill-current" />
+                    Start Assignment
+                  </button>
+              </div>
             )}
           </div>
 
-          {!testStarted ? (
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-                <div className="bg-gradient-to-r from-teal-500 to-pink-500 p-8 text-white text-center">
-                    <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-6">
-                        <FiFileText className="w-10 h-10 text-white" />
-                    </div>
-                    <h2 className="text-3xl font-bold mb-2">Ready to start?</h2>
-                    <p className="text-teal-50 opacity-90 text-lg">Please review the assignment details below before beginning.</p>
-                </div>
-                
-                <div className="p-6">
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                        <div className="bg-teal-50 p-3 rounded-lg text-center border border-teal-100">
-                            <FiClock className="w-5 h-5 text-teal-500 mx-auto mb-1" />
-                            <p className="text-gray-500 text-xs font-medium">Duration</p>
-                            <p className="text-gray-900 font-bold text-base">{assignment.timeLimit} mins</p>
-                        </div>
-                        <div className="bg-blue-50 p-3 rounded-lg text-center border border-blue-100">
-                            <FiFileText className="w-5 h-5 text-blue-500 mx-auto mb-1" />
-                            <p className="text-gray-500 text-xs font-medium">Questions</p>
-                            <p className="text-gray-900 font-bold text-base">{assignment.totalQuestions}</p>
-                        </div>
-                        <div className="bg-green-50 p-3 rounded-lg text-center border border-green-100">
-                            <FiCheckCircle className="w-5 h-5 text-green-500 mx-auto mb-1" />
-                            <p className="text-gray-500 text-xs font-medium">Passing</p>
-                            <p className="text-gray-900 font-bold text-base">{assignment.passingScore}%</p>
-                        </div>
-                        <div className="bg-purple-50 p-3 rounded-lg text-center border border-purple-100">
-                            <FiAward className="w-5 h-5 text-purple-500 mx-auto mb-1" />
-                            <p className="text-gray-500 text-xs font-medium">Points</p>
-                            <p className="text-gray-900 font-bold text-base">{assignment.totalPoints}</p>
-                        </div>
-                    </div>
+{!testStarted ? (
+  <div className="bg-white rounded-2xl shadow-md overflow-hidden flex flex-col lg:flex-row">
 
-                    <div className="bg-gray-50 rounded-lg p-5 mb-8 border border-gray-100">
-                        <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
-                             <FiAlertCircle className="text-teal-500" />
-                             Important Instructions
-                        </h3>
-                        <ul className="space-y-2 text-gray-600 text-sm">
-                            <li className="flex items-start gap-2">
-                                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-1.5 flex-shrink-0"></span>
-                                You have up to <span className="font-bold text-gray-900">{eligibilityStatus?.maxAttempts || 3} attempts</span> to pass this assignment.
-                            </li>
-                            {eligibilityStatus?.attemptCount > 0 && (
-                              <li className="flex items-start gap-2">
-                                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-1.5 flex-shrink-0"></span>
-                                This is attempt <span className="font-bold text-teal-600">{eligibilityStatus.attemptCount + 1} of {eligibilityStatus.maxAttempts}</span>
-                              </li>
-                            )}
-                            <li className="flex items-start gap-2">
-                                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-1.5 flex-shrink-0"></span>
-                                The timer will start immediately once you click the button below.
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-1.5 flex-shrink-0"></span>
-                                Please do not refresh the page or navigate away during the test.
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-1.5 flex-shrink-0"></span>
-                                Answer all questions. You can revisit previous questions.
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-1.5 flex-shrink-0"></span>
-                                The test will auto-submit when the time expires.
-                            </li>
-                        </ul>
-                    </div>
+    {/* Left Panel */}
+    <div className="bg-[#115E59] p-8 text-white text-center flex flex-col items-center justify-center lg:w-64 lg:min-w-64">
+      <div className="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+        <FiFileText className="w-7 h-7 text-white" />
+      </div>
+      <h2 className="text-2xl font-bold mb-2">Ready to start?</h2>
+      <p className="text-teal-100 text-sm leading-relaxed">Please review the assignment details before beginning.</p>
+    </div>
 
-                    <button
-                        onClick={() => setTestStarted(true)}
-                        className="w-full bg-gradient-to-r from-teal-500 to-pink-500 text-white py-3 rounded-lg font-bold text-lg hover:from-teal-600 hover:to-pink-600 transition-all duration-300 transform hover:-translate-y-1 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-                    >
-                        <FiPlay className="w-5 h-5 fill-current" />
-                        Start Assignment
-                    </button>
-                </div>
-            </div>
-          ) : (
+    {/* Right Panel */}
+    <div className="p-6 lg:p-8 flex-1 flex flex-col gap-5">
+
+      {/* Stat Grid */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-teal-50 border border-teal-100 p-4 rounded-xl flex items-center gap-3">
+          <FiClock className="w-6 h-6 text-teal-600 flex-shrink-0" />
+          <div>
+            <p className="text-gray-500 text-xs mb-0.5">Duration</p>
+            <p className="text-gray-900 font-bold text-lg">{assignment.timeLimit} mins</p>
+          </div>
+        </div>
+        <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex items-center gap-3">
+          <FiFileText className="w-6 h-6 text-blue-500 flex-shrink-0" />
+          <div>
+            <p className="text-gray-500 text-xs mb-0.5">Questions</p>
+            <p className="text-gray-900 font-bold text-lg">{assignment.totalQuestions}</p>
+          </div>
+        </div>
+        <div className="bg-green-50 border border-green-100 p-4 rounded-xl flex items-center gap-3">
+          <FiCheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
+          <div>
+            <p className="text-gray-500 text-xs mb-0.5">Passing</p>
+            <p className="text-gray-900 font-bold text-lg">{assignment.passingScore}%</p>
+          </div>
+        </div>
+        <div className="bg-purple-50 border border-purple-100 p-4 rounded-xl flex items-center gap-3">
+          <FiAward className="w-6 h-6 text-purple-500 flex-shrink-0" />
+          <div>
+            <p className="text-gray-500 text-xs mb-0.5">Points</p>
+            <p className="text-gray-900 font-bold text-lg">{assignment.totalPoints}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Instructions */}
+      <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+        <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+          <FiAlertCircle className="text-teal-600 w-4 h-4" />
+          Important Instructions
+        </h3>
+        <ul className="space-y-2.5 text-gray-600 text-sm">
+          <li className="flex items-start gap-2.5">
+            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-1.5 flex-shrink-0"></span>
+            <span>You have up to <span className="font-bold text-gray-900">{eligibilityStatus?.maxAttempts || 3} attempts</span> to pass this assignment.</span>
+          </li>
+          {eligibilityStatus?.attemptCount > 0 && (
+            <li className="flex items-start gap-2.5">
+              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-1.5 flex-shrink-0"></span>
+              <span>This is attempt <span className="font-bold text-teal-600">{eligibilityStatus.attemptCount + 1} of {eligibilityStatus.maxAttempts}</span></span>
+            </li>
+          )}
+          <li className="flex items-start gap-2.5">
+            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-1.5 flex-shrink-0"></span>
+            <span>Timer starts immediately once you click the button below.</span>
+          </li>
+          <li className="flex items-start gap-2.5">
+            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-1.5 flex-shrink-0"></span>
+            <span>Do not refresh the page or navigate away during the test.</span>
+          </li>
+          <li className="flex items-start gap-2.5">
+            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-1.5 flex-shrink-0"></span>
+            <span>Answer all questions — you can revisit previous ones.</span>
+          </li>
+          <li className="flex items-start gap-2.5">
+            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-1.5 flex-shrink-0"></span>
+            <span>The test auto-submits when the time expires.</span>
+          </li>
+        </ul>
+      </div>
+
+      {/* Start Button */}
+      <button
+        onClick={() => setTestStarted(true)}
+        className="w-full bg-[#115E59] text-white py-3.5 rounded-xl font-bold text-base hover:bg-[#0F766E] transition-all duration-200 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+      >
+        <FiPlay className="w-5 h-5 fill-current" />
+        Start Assignment
+      </button>
+
+    </div>
+  </div>
+) : (
             <div className="flex items-center gap-4">
               <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
                 <div
@@ -429,41 +455,55 @@ const AssignmentTest = () => {
               </div>
             </div>
 
-            {/* Navigation */}
-            <div className="flex gap-4 mb-6">
-              <button
-                onClick={handlePrevious}
-                disabled={currentQuestionIndex === 0}
-                className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                ← Previous
-              </button>
+            {/* Navigation and Question Palette */}
+            <div className="bg-white rounded-lg shadow-md p-5 sm:p-6 mb-6">
+              <div className="flex flex-col-reverse md:flex-row justify-between items-center gap-6">
+                
+                <button
+                  onClick={handlePrevious}
+                  disabled={currentQuestionIndex === 0}
+                  className="w-full md:w-auto px-6 py-2.5 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  ← Previous
+                </button>
 
-              <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {assignment.questions.map((q, idx) => (
-                  <button
-                    key={q._id}
-                    onClick={() => setCurrentQuestionIndex(idx)}
-                    className={`py-2 rounded-lg font-semibold transition ${
-                      idx === currentQuestionIndex
-                        ? 'bg-[#115E59] text-white'
-                        : answers[q._id]
-                        ? 'bg-green-200 text-green-800'
-                        : 'bg-gray-200 text-gray-700'
-                    }`}
-                  >
-                    {idx + 1}
-                  </button>
-                ))}
+                <div className="flex flex-wrap justify-center gap-2 sm:gap-3 flex-1 w-full">
+                  {assignment.questions.map((q, idx) => {
+                    const isAnswered = answers[q._id] && String(answers[q._id]).trim() !== '';
+                    const isCurrent = idx === currentQuestionIndex;
+                    
+                    let btnClass = "w-10 h-10 rounded-lg font-bold flex items-center justify-center transition-all text-sm border-2 cursor-pointer ";
+                    
+                    if (isCurrent && isAnswered) {
+                      btnClass += "border-[#115E59] bg-[#115E59] text-white shadow-md transform scale-110";
+                    } else if (isCurrent && !isAnswered) {
+                      btnClass += "border-[#115E59] bg-teal-50 text-[#115E59] shadow-md transform scale-110";
+                    } else if (isAnswered) {
+                      btnClass += "border-[#14B8A6] bg-[#14B8A6] text-white opacity-90";
+                    } else {
+                      btnClass += "border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300 hover:bg-gray-100";
+                    }
+
+                    return (
+                      <button
+                        key={q._id}
+                        onClick={() => setCurrentQuestionIndex(idx)}
+                        className={btnClass}
+                      >
+                        {idx + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={handleNext}
+                  disabled={currentQuestionIndex === assignment.questions.length - 1}
+                  className="w-full md:w-auto px-6 py-2.5 bg-[#115E59] text-white font-semibold rounded-lg hover:bg-[#0F766E] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                >
+                  Next →
+                </button>
               </div>
-
-              <button
-                onClick={handleNext}
-                disabled={currentQuestionIndex === assignment.questions.length - 1}
-                className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                Next →
-              </button>
             </div>
 
             {/* Submit Button */}

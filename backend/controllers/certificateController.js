@@ -240,21 +240,10 @@ export const saveCertificateFromMobile = async (req, res) => {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // 4️⃣ APPLY SINGLE CERTIFICATE RULE (SERIES LOGIC)
+    // 4️⃣ GENERATE CERTIFICATE
     // ═══════════════════════════════════════════════════════════════
     let certificate = null;
-    let isFinalPart = true;
-
-    if (course && course.seriesKey) {
-      const higherOrderCourse = await Course.findOne({
-        seriesKey: course.seriesKey,
-        seriesOrder: { $gt: course.seriesOrder || 0 }
-      });
-      if (higherOrderCourse) {
-        isFinalPart = false;
-        console.log(`ℹ️ Part ${course.seriesOrder} completed, but skipping certificate (not final part).`);
-      }
-    }
+    let isFinalPart = true; // Always true now, every part gets a certificate
 
     if (isFinalPart) {
       certificate = await Certificate.create({

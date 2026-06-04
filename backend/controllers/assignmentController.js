@@ -119,77 +119,36 @@ export const checkAssignmentEligibility = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Assignment not found' });
     }
 
-    // Check student progress in course
-    const progress = await Progress.findOne({
-      user: userId,
-      course: assignment.courseId
-    });
-
-    const course = await Course.findById(assignment.courseId);
-    const courseProgress = progress?.overallProgress || 0;
-
-    // Series logic: If this course is part of a series, all PREVIOUS courses in the series must be >= 90%
-    if (course.seriesKey) {
-        const seriesCourses = await Course.find({ 
-            seriesKey: course.seriesKey,
-            seriesOrder: { $lt: course.seriesOrder || 0 } 
-        });
-        
-        if (seriesCourses.length > 0) {
-            const seriesProgresses = await Progress.find({
-                user: userId,
-                course: { $in: seriesCourses.map(c => c._id) }
-            });
-
-            // Check for previous passing submissions
-            const previousSubmissions = await AssignmentSubmission.find({
-                userId,
-                courseId: { $in: seriesCourses.map(c => c._id) },
-                passed: true
-            });
-
-            const incompleteCourses = [];
-            for (const sc of seriesCourses) {
-                // Check lesson progress
-                const sp = seriesProgresses.find(p => p.course.toString() === sc._id.toString());
-                const lessonProgress = sp?.overallProgress || 0;
-                
-                // Check if this previous course has an assignment
-                const hasAssignment = await Assignment.findOne({ courseId: sc._id });
-                
-                if (lessonProgress < 90) {
-                    incompleteCourses.push({ title: sc.title, reason: 'Lessons incomplete' });
-                    continue;
-                }
-
-                if (hasAssignment) {
-                    const hasPassed = previousSubmissions.some(s => s.courseId.toString() === sc._id.toString());
-                    if (!hasPassed) {
-                        incompleteCourses.push({ title: sc.title, reason: 'Assignment not passed' });
-                    }
-                }
-            }
-
-            if (incompleteCourses.length > 0) {
-                const reasons = incompleteCourses.map(c => `${c.title} (${c.reason})`).join(', ');
-                return res.status(200).json({
-                    success: true,
-                    canTake: false,
-                    reason: `Complete previous requirements first: ${reasons}`,
-                    incompleteCount: incompleteCourses.length,
-                    incompleteTitles: incompleteCourses.map(c => c.title)
-                });
-            }
-        }
-    } 
+    // Fetch enrollment to check time lock (30 days from enrollment)
+    const enrollment = await Enrollment.findOne({ user: userId, course: assignment.courseId });
+    const userDoc = await User.findById(userId);
     
-    if (courseProgress < 90) {
-      return res.status(200).json({
-        success: true,
-        canTake: false,
-        reason: `Complete 90% of course first (Currently ${courseProgress}%)`,
-        progress: courseProgress
-      });
+    // Find the enrolledAt date either from Enrollment model, User's enrolledCourses array, or user creation date
+    let enrolledAt = null;
+    if (enrollment && enrollment.enrolledAt) {
+        enrolledAt = enrollment.enrolledAt;
+    } else if (userDoc && userDoc.enrolledCourses) {
+        const ec = userDoc.enrolledCourses.find(c => c.courseId.toString() === assignment.courseId.toString());
+        if (ec && ec.enrolledAt) {
+            enrolledAt = ec.enrolledAt;
+        }
+    }
+    
+    if (!enrolledAt) {
+        enrolledAt = userDoc.createdAt;
+    }
+
+    const daysSinceEnrollment = Math.floor((Date.now() - new Date(enrolledAt).getTime()) / (1000 * 60 * 60 * 24));
+    const requiredDays = 30; // Every course requires 30 days from its own enrollment date
+
+    if (daysSinceEnrollment < requiredDays) {
+        const daysLeft = requiredDays - daysSinceEnrollment;
+        return res.status(200).json({
+            success: true,
+            canTake: false,
+            reason: `This assignment will unlock in ${daysLeft} day${daysLeft > 1 ? 's' : ''}.`,
+            daysLeft
+        });
     }
 
     // Check all submissions for the student
@@ -307,40 +266,26 @@ export const submitAssignment = async (req, res, next) => {
       const course = await Course.findById(assignment.courseId);
       const user = await User.findById(userId);
 
-      // --- SINGLE CERTIFICATE RULE ---
-      // Only generate certificate if this is the FINAL course in the series
-      let isFinalPart = true;
-      if (course.seriesKey) {
-          const higherOrderCourse = await Course.findOne({
-              seriesKey: course.seriesKey,
-              seriesOrder: { $gt: course.seriesOrder || 0 }
-          });
-          if (higherOrderCourse) {
-              isFinalPart = false;
-          }
-      }
+      // Generate certificate for this assignment unconditionally
+      certificate = await Certificate.create({
+        userId,
+        courseId: assignment.courseId,
+        type: 'assignment',
+        score: percentageScore,
+        courseTitle: course.certificateTitle || course.title,
+        userName: user.name,
+        certificateUrl: `/certificates/${submission._id}`
+      });
 
-      if (isFinalPart) {
-          certificate = await Certificate.create({
-            userId,
-            courseId: assignment.courseId,
-            type: 'assignment',
-            score: percentageScore,
-            courseTitle: course.certificateTitle || course.title,
-            userName: user.name,
-            certificateUrl: `/certificates/${submission._id}`
-          });
+      // Link certificate to submission
+      await AssignmentSubmission.findByIdAndUpdate(submission._id, {
+        certificateId: certificate._id
+      });
 
-          // Link certificate to submission
-          await AssignmentSubmission.findByIdAndUpdate(submission._id, {
-            certificateId: certificate._id
-          });
-
-          // Add certificate to user
-          await User.findByIdAndUpdate(userId, {
-            $push: { certificates: certificate._id }
-          });
-      }
+      // Add certificate to user
+      await User.findByIdAndUpdate(userId, {
+        $push: { certificates: certificate._id }
+      });
 
       // ✅ SYNC: Update Progress model
       await Progress.findOneAndUpdate(

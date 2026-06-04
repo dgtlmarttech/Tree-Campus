@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
-import { jsPDF } from 'jspdf';
+import { FiDownload } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 
 const AssignmentResults = () => {
@@ -27,75 +27,6 @@ const AssignmentResults = () => {
       setCertificate(res.data.data);
     } catch (error) {
       console.error('Error fetching certificate:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDownloadCertificate = async () => {
-    try {
-      setLoading(true);
-      
-      const doc = new jsPDF({
-        orientation: 'landscape',
-        unit: 'px',
-        format: [842, 595]
-      });
-
-      const img = new Image();
-      img.src = '/assets/certificate_template.png';
-      
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-      });
-
-      const width = doc.internal.pageSize.getWidth();
-      const height = doc.internal.pageSize.getHeight();
-
-      doc.addImage(img, 'PNG', 0, 0, width, height);
-
-      // ✅ NAME SECTION - Centered on horizontal line
-      const nameLineY = height / 2 + 28; // Position of the underline
-      
-      // Draw white rectangle to cover template text
-      doc.setFillColor(255, 255, 255);
-      doc.rect(width / 2 - 140, nameLineY - 30, 280, 50, 'F');
-
-      // Draw Underline
-      doc.setDrawColor(80, 80, 80); // Darker gray
-      doc.setLineWidth(0.8);
-      doc.line(width / 2 - 150, nameLineY, width / 2 + 150, nameLineY);
-
-      // Name - Centered on the line
-      doc.setFontSize(42);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(40, 40, 40);
-      const name = certificate?.userName || user?.name || '';
-      doc.text(name, width / 2, nameLineY - 8, { align: 'center' }); // Above the line
-
-      // ✅ DATE SECTION - Bottom left, above DATE label
-      const dateLineY = height - 85; // Position of date value (above DATE label)
-      const dateX = 140; // Left position
-      
-      const date = new Date(certificate?.issuedAt || Date.now()).toLocaleDateString();
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(40, 40, 40);
-      doc.text(date, dateX, dateLineY); // Date value positioned above DATE label
-      
-      // Draw underline for date
-      doc.setDrawColor(80, 80, 80);
-      doc.setLineWidth(0.8);
-      doc.line(dateX - 20, dateLineY + 5, dateX + 60, dateLineY + 5);
-
-      // Add signature or other details if available
-
-      const fileName = (certificate?.userName || user?.name || 'User').replace(/\s+/g, '_');
-      doc.save(`Certificate-${fileName}.pdf`);
-    } catch (error) {
-      console.error('Error generating certificate:', error);
-      alert('Failed to generate certificate. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -160,11 +91,11 @@ const AssignmentResults = () => {
                 <strong>{certificate?.userName || user?.name || 'User'}</strong>, your certificate of completion is ready.
               </p>
               <button
-                onClick={handleDownloadCertificate}
-                disabled={loading}
-                className="w-full bg-[#115E59] text-white py-2.5 rounded-lg font-bold hover:bg-[#0F766E] disabled:opacity-50 transition text-sm flex items-center justify-center gap-2"
+                onClick={() => navigate('/certificate')}
+                className="w-full bg-[#115E59] text-white py-3 px-4 rounded-lg font-bold hover:bg-[#0F766E] transition-colors flex items-center justify-center gap-2"
               >
-                {loading ? 'Generating...' : '⬇️ Download Certificate'}
+                <FiDownload className="w-5 h-5" />
+                View & Download Certificate
               </button>
             </div>
           )}
@@ -197,10 +128,7 @@ const AssignmentResults = () => {
           </div>
         </div>
 
-        {/* Tips Section - Condensed to act as footer */}
-        <div className="text-center text-xs text-gray-500">
-          <p>Tip: Review the material before re-attempting assignment.</p>
-        </div>
+       
       </div>
     </div>
   );

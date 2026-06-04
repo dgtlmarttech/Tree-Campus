@@ -66,38 +66,29 @@ const Certificate = () => {
             doc.addImage(img, 'JPEG', 0, 0, width, height);
 
             // ─── NAME ────────────────────────────────────────────────────────────────
-            const nameY = height * 0.58; // Center it exactly on the empty line
-            const nameX = width * 0.495; // Horizontally center on the line
+            const nameY = height * 0.565; // Slightly higher to sit exactly on the line
+            const nameX = width * 0.5; // Exactly center
             
-            // Add horizontal lines (matching template) - REMOVED AS PER USER REQUEST
-
-            // Add horizontal lines (matching template) - REMOVED AS PER USER REQUEST
-
             // Name text
             const name = cert.userName || user?.name || '';
-            doc.setFontSize(28);
-            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(36); // Bigger font
+            doc.setFont('times', 'bolditalic'); // Professional font
             doc.setTextColor(26, 37, 47);
-            doc.text(name, nameX, nameY, { align: 'center', baseline: 'middle' });
-
-            // ─── COURSE NAME ────────────────────────────────────────────────────────
-            // Course Name section removed as per user request
-
+            doc.text(name, nameX, nameY, { align: 'center', baseline: 'bottom' });
 
             // ─── DATE ────────────────────────────────────────────────────────────────
-            // Date appears above the "DATE" line
-            const dateY = height * 0.81; // Positioned directly over the line
-            const dateX = width * 0.49; // Shift left closer to DATE line center
+            const dateY = height * 0.81; // Directly above the line
+            const dateX = width * 0.5; // Exactly center (where DATE is printed)
 
             const date = new Date(cert.issuedAt).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric'
             });
-            doc.setFontSize(11);
-            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(14); // Slightly larger
+            doc.setFont('times', 'bold');
             doc.setTextColor(26, 37, 47);
-            doc.text(date, dateX, dateY, { align: 'center', baseline: 'middle' });
+            doc.text(date, dateX, dateY, { align: 'center', baseline: 'bottom' });
 
             // ─── CERTIFICATE ID ───────────────────────────────────────────────────────
             doc.setFontSize(8);
@@ -248,16 +239,19 @@ const Certificate = () => {
                                     </p>
                                 </div>
 
-                                {/* Hover overlay */}
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center rounded-xl backdrop-blur-sm z-20">
+                                {/* Always Visible Action Bar below the Certificate */}
+                                <div className="p-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                                    <div className="text-center sm:text-left">
+                                        <p className="text-sm font-semibold text-gray-800 line-clamp-1">{cert.courseId?.title || 'Course Certificate'}</p>
+                                        <p className="text-xs text-gray-500 mt-1">Issued: {new Date(cert.issuedAt).toLocaleDateString()}</p>
+                                    </div>
                                     <button
                                         onClick={(e) => {
                                             e.preventDefault();
-                                            e.stopPropagation();
                                             handleDownloadCertificate(cert._id);
                                         }}
                                         disabled={downloading === cert._id}
-                                        className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-teal-400 to-teal-600 text-white font-bold rounded-full transform scale-90 group-hover:scale-100 transition-all duration-300 shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 bg-[#115E59] text-white font-bold rounded-lg shadow-md hover:bg-[#0F766E] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
                                     >
                                         {downloading === cert._id ? (
                                             <>

@@ -376,8 +376,17 @@ export const getStudents = async (req, res) => {
     const totalStudents = await User.countDocuments(query);
 
     // --- Aggregate stats from Enrollment collection (source of truth) ---
-    const activeStudentsCount = activeUserIds.length;
-    const totalEnrollments = await Enrollment.countDocuments();
+    const allStudentUsers = await User.find({ role: 'student' }).select('enrolledCourses');
+    let activeStudentsCount = 0;
+    let totalEnrollments = 0;
+    
+    allStudentUsers.forEach(u => {
+      const dbCount = enrollmentMap.get(String(u._id)) || 0;
+      const arrCount = u.enrolledCourses?.length || 0;
+      const totalForUser = Math.max(dbCount, arrCount);
+      totalEnrollments += totalForUser;
+      if (totalForUser > 0) activeStudentsCount++;
+    });
     const certificatesIssued = await Certificate.countDocuments();
 
     // Get enrollment counts for THIS page's students from Enrollment collection

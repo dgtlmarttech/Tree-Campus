@@ -901,18 +901,15 @@ const CourseOverview = () => {
                                   <FiLock size={14} />
                                   Locked
                                 </span>
-                                {assignmentEligibility[assignment._id]?.reason ? (
-                                    <div className="mt-2 text-xs text-red-600 font-bold max-w-[250px] bg-red-50 p-2 rounded-lg border border-red-100">
-                                        Requirements pending:
-                                        <p className="mt-1 font-semibold text-gray-700 leading-tight">
-                                            {assignmentEligibility[assignment._id].reason}
-                                        </p>
+                                {assignmentEligibility[assignment._id]?.reason && (
+                                    <div className="mt-2 text-xs text-amber-700 font-bold max-w-[250px] bg-amber-50 p-2 rounded-lg border border-amber-200">
+                                        <div className="flex items-start gap-1">
+                                            <FiClock className="mt-0.5 shrink-0" size={12} />
+                                            <p className="leading-tight">
+                                                {assignmentEligibility[assignment._id].reason}
+                                            </p>
+                                        </div>
                                     </div>
-                                ) : (
-                                    <p className="text-xs text-teal-600 font-semibold mt-1">
-                                        Current Progress: {Math.round(courseProgress)}% <br/>
-                                        Complete {Math.max(0, Math.ceil(90 - courseProgress))}% more to unlock
-                                    </p>
                                 )}
                               </div>
                             )
@@ -925,21 +922,7 @@ const CourseOverview = () => {
                         </div>
                       </div>
                       
-                      {/* Progress Bar for Locked State */}
-                      {isAuthenticated && isEnrolled && courseProgress < 90 && (
-                        <div className="mt-4 pt-4 border-t border-gray-100">
-                          <div className="flex items-center justify-between text-xs mb-1">
-                            <span className="font-bold text-gray-500">Unlock Progress</span>
-                            <span className="font-bold text-[#14B8A6]">{Math.round(courseProgress)}% / 90%</span>
-                          </div>
-                          <div className="w-full bg-gray-100 rounded-full h-2">
-                            <div 
-                              className="bg-[#115E59] h-2 rounded-full transition-all duration-500"
-                              style={{ width: `${Math.min(courseProgress, 90)}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      )}
+                      {/* Note: The old 90% progress bar was removed since assignments are time-locked now */}
                     </div>
                   </div>
                 ))}

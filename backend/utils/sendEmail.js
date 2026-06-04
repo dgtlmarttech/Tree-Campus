@@ -232,20 +232,65 @@ export const sendVolunteerConfirmation = async (email, name, details) => {
 
 // Wrapper function for assignment results
 export const sendAssignmentResultsEmail = async (email, name, results) => {
+  const isPassed = results.passed;
+  const statusColor = isPassed ? '#28a745' : '#dc3545';
+  const statusText = isPassed ? 'Passed 🎉' : 'Needs Improvement ⚠️';
+  const resultMessage = isPassed
+    ? `<p style="font-size: 16px; color: #333;">Congratulations! You have successfully passed the assignment and earned your certificate.</p>`
+    : `<p style="font-size: 16px; color: #333;">Don't worry, you can try again! Review the course material and attempt the assignment again.</p>`;
+
+  const certificateSection = (isPassed && results.certificateId)
+    ? `
+      <div style="margin-top: 20px;">
+        <p style="font-size: 16px; color: #333; margin-bottom: 10px;">Your certificate is ready to download!</p>
+        <a href="https://treecampus.in/dashboard/certificates" style="display: inline-block; background-color: #007bff; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">View Certificate</a>
+      </div>
+    `
+    : '';
+
   const htmlContent = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
-      <h2 style="color: #007bff; text-align: center;">Assignment Results</h2>
-      <p>Hi ${name},</p>
-      <p>Your assignment results are ready!</p>
-      <p>Please log in to your account to view your detailed results.</p>
-      <p>Best regards,<br>TreeCampus Team</p>
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #ffffff;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h2 style="color: #115E59; margin: 0;">Assignment Results</h2>
+        <p style="color: #666; font-size: 14px; margin-top: 5px;">TreeCampus Learning</p>
+      </div>
+      
+      <p style="font-size: 16px;">Hi <strong>${name}</strong>,</p>
+      <p style="font-size: 16px;">Here are your results for the assignment of <strong>${results.courseTitle || 'your course'}</strong>:</p>
+      
+      <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 5px solid ${statusColor}; margin: 20px 0;">
+        <table width="100%" cellpadding="5" cellspacing="0" style="font-size: 16px;">
+          <tr>
+            <td style="color: #666; width: 40%;"><strong>Status:</strong></td>
+            <td style="color: ${statusColor}; font-weight: bold;">${statusText}</td>
+          </tr>
+          <tr>
+            <td style="color: #666;"><strong>Your Score:</strong></td>
+            <td style="font-weight: bold;">${results.score}%</td>
+          </tr>
+          ${!isPassed && results.passingScore ? `
+          <tr>
+            <td style="color: #666;"><strong>Passing Score:</strong></td>
+            <td>${results.passingScore}%</td>
+          </tr>
+          ` : ''}
+        </table>
+      </div>
+
+      ${resultMessage}
+      ${certificateSection}
+
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px;">
+        <p style="margin: 0;">Best regards,</p>
+        <p style="margin: 5px 0 0 0; font-weight: bold; color: #115E59;">TreeCampus Team</p>
+      </div>
     </div>
   `;
 
   const data = {
     sender: { email: senderEmail, name: "Treecampus" },
     to: [{ email: email, name: name }],
-    subject: 'Your Assignment Results',
+    subject: `Assignment Results: ${results.courseTitle || 'Your Course'}`,
     htmlContent: htmlContent,
   };
 
