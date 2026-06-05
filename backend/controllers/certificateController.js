@@ -12,7 +12,7 @@ import AssignmentSubmission from '../models/AssignmentSubmission.js';
 export const getCertificates = async (req, res) => {
   try {
     const certificates = await Certificate.find({ userId: req.user._id })
-      .populate('courseId', 'title thumbnail instructor')
+      .populate('courseId', 'title thumbnail instructor seriesOrder level')
       .sort('-issuedAt');
 
     res.status(200).json({
@@ -35,7 +35,7 @@ export const getCertificate = async (req, res) => {
   try {
     const certificate = await Certificate.findById(req.params.id)
       .populate('userId', 'name email')
-      .populate('courseId', 'title instructor');
+      .populate('courseId', 'title instructor seriesOrder level');
 
     if (!certificate) {
       return res.status(404).json({

@@ -7,6 +7,22 @@ import toast from 'react-hot-toast';
 import domtoimage from 'dom-to-image-more';
 import jsPDF from 'jspdf';
 
+const getCertificateTemplate = (cert) => {
+    const order = cert.courseId?.seriesOrder;
+    const title = (cert.courseId?.title || cert.courseTitle || '').toLowerCase();
+    
+    if (order === 1 || title.includes('part-1') || title.includes('1 to 30')) {
+        return 'https://res.cloudinary.com/dbbll23jz/image/upload/v1780654748/Certificate-1_xnrs9y.png';
+    } else if (order === 2 || title.includes('part-2') || title.includes('31 to 60')) {
+        return 'https://res.cloudinary.com/dbbll23jz/image/upload/v1780654744/Certificate2_wsx0hl.png';
+    } else if (order === 3 || title.includes('part-3') || title.includes('61 to 90')) {
+        return 'https://res.cloudinary.com/dbbll23jz/image/upload/v1780654744/Certificate3_2_ubo89f.png';
+    }
+    
+    // Default
+    return 'https://res.cloudinary.com/dbbll23jz/image/upload/v1780654748/Certificate-1_xnrs9y.png';
+};
+
 const Certificate = () => {
     const [certificates, setCertificates] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -57,7 +73,7 @@ const Certificate = () => {
             // Load certificate template image
             const img = new Image();
             img.crossOrigin = 'anonymous';
-            img.src = 'https://res.cloudinary.com/dbbll23jz/image/upload/v1765345196/certificate_treecampus_page-0001_z38eqj.jpg';
+            img.src = getCertificateTemplate(cert);
             
             await new Promise((resolve, reject) => {
                 img.onload = resolve;
@@ -170,7 +186,7 @@ const Certificate = () => {
                                     
                                     {/* Certificate Template Background Image */}
                                     <img 
-                                        src="https://res.cloudinary.com/dbbll23jz/image/upload/v1765345196/certificate_treecampus_page-0001_z38eqj.jpg"
+                                        src={getCertificateTemplate(cert)}
                                         alt="Certificate Template"
                                         className="absolute inset-0 w-full h-full object-contain"
                                         crossOrigin="anonymous"
