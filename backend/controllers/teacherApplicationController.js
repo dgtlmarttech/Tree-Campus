@@ -89,10 +89,9 @@ export const applyTeacher = async (req, res, next) => {
       }
     }
 
-    const isImage = resumeFile.mimetype.startsWith('image/');
-    const resumeResourceType = isImage ? 'image' : 'raw';
+    const resumeResourceType = 'auto';
 
-    console.log(`📂 Uploading resume (${resumeFile.originalname}) as ${resumeResourceType} and video (${videoFile.originalname}) to Cloudinary...`);
+    console.log(`📂 Uploading resume (${resumeFile.originalname}) as auto and video (${videoFile.originalname}) to Cloudinary...`);
 
     // 1. Upload Resume as appropriate format
     const resumeUpload = await uploadToCloudinary(
@@ -117,7 +116,7 @@ export const applyTeacher = async (req, res, next) => {
       phone,
       resume: resumeUpload.secure_url,
       resumePublicId: resumeUpload.public_id,
-      resumeResourceType,
+      resumeResourceType: resumeUpload.resource_type,
       demoVideo: videoUpload.secure_url,
       demoVideoPublicId: videoUpload.public_id,
       isPhoneVerified: false
@@ -146,7 +145,7 @@ export const applyTeacher = async (req, res, next) => {
     if (!otpSent) {
       // Clean up uploads since OTP trigger failed
       try {
-        await cloudinary.uploader.destroy(resumeUpload.public_id, { resource_type: resumeResourceType });
+        await cloudinary.uploader.destroy(resumeUpload.public_id, { resource_type: resumeUpload.resource_type });
         await cloudinary.uploader.destroy(videoUpload.public_id, { resource_type: 'video' });
         await application.deleteOne();
       } catch (cleanupErr) {
