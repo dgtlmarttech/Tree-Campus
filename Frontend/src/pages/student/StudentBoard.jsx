@@ -241,13 +241,15 @@ const StudentDashboard = () => {
           color="emerald"
           delay="200"
         />
-        <StatCard
-          icon={<FiAward className="w-6 h-6" />}
-          title="Certificates Earned"
-          value={safeStats.totalCertificates}
-          color="amber"
-          delay="300"
-        />
+        <Link to="/certificate" className="block cursor-pointer">
+          <StatCard
+            icon={<FiAward className="w-6 h-6" />}
+            title="Certificates Earned"
+            value={safeStats.totalCertificates}
+            color="amber"
+            delay="300"
+          />
+        </Link>
         <StatCard
           icon={<FiTrendingUp className="w-6 h-6" />}
           title="Overall Progress"
@@ -372,6 +374,27 @@ const StudentDashboard = () => {
 
         {/* Right Column */}
         <div className="space-y-6">
+          {/* Certificates Quick Access */}
+          <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl shadow-lg p-6 text-white animate-fadeInUp" style={{ animationDelay: '250ms' }}>
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <FiAward className="w-6 h-6 text-white" />
+              </div>
+              <h2 className="text-xl font-bold text-white">My Certificates</h2>
+            </div>
+            <p className="text-amber-50 text-sm mb-5">
+              {safeStats.totalCertificates > 0 
+                ? `You have earned ${safeStats.totalCertificates} certificate${safeStats.totalCertificates > 1 ? 's' : ''}! View and download them here.` 
+                : "Complete courses and pass exams to earn your verified certificates."}
+            </p>
+            <Link
+              to="/certificate"
+              className="block w-full py-2.5 bg-white text-amber-600 text-center font-bold rounded-xl hover:bg-gray-50 transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+            >
+              Go to Certificates <FiArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+
           {/* Recent Activity */}
           <div className="bg-white rounded-2xl shadow-lg p-6 animate-fadeInUp" style={{ animationDelay: '300ms' }}>
             <h2 className="text-xl font-bold text-gray-900 mb-6">Recent Activity</h2>

@@ -356,3 +356,33 @@ export const saveCertificateFromMobile = async (req, res) => {
     });
   }
 };
+
+// @desc    Verify certificate by certificate number
+// @route   GET /api/certificates/verify/:certificateNumber
+// @access  Public
+export const verifyCertificate = async (req, res) => {
+  try {
+    const certificate = await Certificate.findOne({ certificateNumber: req.params.certificateNumber })
+      .populate('userId', 'name email')
+      .populate('courseId', 'title instructor seriesOrder level');
+
+    if (!certificate) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invalid Certificate ID or Certificate not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: certificate
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error verifying certificate',
+      error: error.message
+    });
+  }
+};
+

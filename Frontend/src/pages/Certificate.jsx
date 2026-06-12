@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { FiAward, FiDownload, FiArrowRight, FiBookOpen } from 'react-icons/fi';
+import { FiAward, FiDownload, FiArrowRight, FiBookOpen, FiCheckCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 
@@ -107,9 +107,15 @@ const Certificate = () => {
             doc.text(date, dateX, dateY, { align: 'center', baseline: 'bottom' });
 
             // ─── CERTIFICATE ID ───────────────────────────────────────────────────────
-            doc.setFontSize(8);
-            doc.setTextColor(128, 128, 128);
-            doc.text(`ID: ${cert.certificateNumber}`, width - 20, height - 10, { align: 'right' });
+            doc.setFontSize(16); // 12 se bada
+doc.setTextColor(0, 0, 0); // Black color
+
+doc.text(
+  `Certificate ID: ${cert.certificateNumber}`,
+  width - 40, // thoda aur left
+  height - 25, // thoda aur upar
+  { align: 'right' }
+);
 
             // Save
             const fileName = `Certificate-${(cert.userName || user?.name || 'User').replace(/\s+/g, '_')}-${cert.certificateNumber || 'cert'}.pdf`;
@@ -155,11 +161,18 @@ const Certificate = () => {
     return (
         <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-7xl mx-auto">
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">My Certificates</h1>
                         <p className="mt-2 text-gray-600">View and download your earned certificates</p>
                     </div>
+                    <button
+                        onClick={() => navigate('/verify-certificate')}
+                        className="inline-flex items-center gap-2 px-6 py-2.5 bg-white border-2 border-teal-600 text-teal-700 font-bold rounded-lg hover:bg-teal-50 transition-all shadow-sm cursor-pointer"
+                    >
+                        <FiCheckCircle className="w-5 h-5" />
+                        Verify a Certificate
+                    </button>
                 </div>
 
                 {certificates.length > 0 ? (
@@ -243,15 +256,15 @@ const Certificate = () => {
 
                                     {/* Certificate ID */}
                                     <p 
-                                        className="absolute text-gray-400 font-mono"
+                                        className="absolute text-white/90 font-mono"
                                         style={{
-                                            bottom: '10px',
-                                            right: '20px',
-                                            fontSize: 'clamp(8px, 0.9vw, 11px)',
+                                            bottom: '15px',
+                                            right: '25px',
+                                            fontSize: 'clamp(8px, 1vw, 12px)',
                                             zIndex: 10,
                                         }}
                                     >
-                                        ID: {cert.certificateNumber}
+                                        Certificate ID: {cert.certificateNumber}
                                     </p>
                                 </div>
 

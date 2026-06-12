@@ -69,6 +69,8 @@ import CompleteProfile from './pages/CompleteProfile';
 import EnglishSpeaking from './pages/EnglishSpeaking';
 import StudentDashboard from './pages/student/StudentBoard';
 import Certificate from './pages/Certificate';
+import Exam from './pages/Exam';
+import VerifyCertificate from './pages/VerifyCertificate';
 
 import './App.css';
 
@@ -160,6 +162,8 @@ function App() {
   <Route path="/courses/:courseId/lesson/:lessonId" element={<LessonView />} />
   <Route path="/forgot-password" element={<ForgotPassword />} />
   <Route path="/reset-password" element={<ResetPassword />} />
+  <Route path="/exam" element={<Exam />} />
+  <Route path="/verify-certificate" element={<VerifyCertificate />} />
 
   <Route path="/blogs" element={<BlogList />} />
   <Route path="/blogs/:id" element={<BlogPost />} />

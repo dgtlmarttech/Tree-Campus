@@ -65,6 +65,25 @@ export const getCourseAssignments = async (req, res, next) => {
   }
 };
 
+// @desc    Get all assignments across all courses
+// @route   GET /api/assignments
+// @access  Public
+export const getAllAssignments = async (req, res, next) => {
+  try {
+    const assignments = await Assignment.find()
+      .populate('courseId', 'title thumbnail') // Populate course title and thumbnail
+      .select('-questions.correctAnswer') // Don't show answers
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: assignments
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get course assignments for ADMIN (includes correct answers)
 // @route   GET /api/assignments/course/:courseId/admin
 // @access  Private/Admin

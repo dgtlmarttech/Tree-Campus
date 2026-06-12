@@ -2,6 +2,7 @@ import express from 'express';
 import {
   createAssignment,
   getCourseAssignments,
+  getAllAssignments,
   getAssignment,
   checkAssignmentEligibility,
   submitAssignment,
@@ -21,6 +22,7 @@ router.put('/:assignmentId', protect, authorize('admin'), updateAssignment);
 router.delete('/:assignmentId', protect, authorize('admin'), deleteAssignment);
 
 // Public/Private routes
+router.get('/', getAllAssignments);
 router.get('/course/:courseId', getCourseAssignments);
 router.get('/:assignmentId', protect, getAssignment);
 router.get('/:assignmentId/check-eligibility', protect, checkAssignmentEligibility);

@@ -60,6 +60,8 @@ export default function Navbar() {
     termsAndConditions: "/terms-and-conditions",
     aboutUs: "/about-us",
     privacyPolicy: "/privacy",
+    exam: "/exam",
+    verifyCertificate: "/verify-certificate",
     myblogs: "/myblogs",
     blogs: {
       main: "/blogs"
@@ -78,7 +80,8 @@ export default function Navbar() {
         { label: "Courses", href: navigation.courses },
         { label: "Certificate", href: navigation.certificate },
         { label: "Blogs", href: navigation.blogs.main },
-        { label: "English Speaking Classes Online Free", href: navigation.EnglishSpeaking }
+        { label: "English Speaking Classes Online Free", href: navigation.EnglishSpeaking },
+        { label: "Certification Exams", href: navigation.exam }
       ]
     },
     more: {
@@ -122,6 +125,11 @@ export default function Navbar() {
           type: "link",
           label: "About Us",
           href: navigation.aboutUs
+        },
+        {
+          type: "link",
+          label: "Verify Certificate",
+          href: navigation.verifyCertificate
         },
         {
           type: "link",
