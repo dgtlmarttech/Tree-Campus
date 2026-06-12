@@ -148,6 +148,8 @@ router.get('/google/callback',
         role: req.user.role,
         profilePicture: req.user.profilePicture,
         isVerified: req.user.isVerified,
+        isPhoneVerified: req.user.isPhoneVerified || false,
+        isWpMigrated: req.user.isWpMigrated || false,
         hasPhone: !!req.user.phone,
         hasPassword: !!req.user.password,
         googleId: req.user.googleId
