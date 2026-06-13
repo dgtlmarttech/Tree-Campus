@@ -234,6 +234,34 @@ const handleSubmit = async (e) => {
                     <p className="text-lg font-bold text-green-700">{user.completedLessons.length} lessons completed</p>
                   </div>
                 )}
+
+                {user?.certificates && user.certificates.length > 0 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 mb-3">🎓 Earned Certificates</h3>
+                    <div className="space-y-3">
+                      {user.certificates.map((cert) => (
+                        <div key={cert._id} className="bg-white p-4 rounded-lg border border-amber-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-sm">
+                          <div>
+                            <p className="font-semibold text-gray-800">{cert.courseTitle || 'Course Certificate'}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Issued: {new Date(cert.issuedAt || cert.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                            </p>
+                            <p className="text-xs text-amber-600 font-medium mt-0.5">
+                              ID: {cert.certificateNumber}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => navigate('/certificate')}
+                            className="px-4 py-2 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600 transition w-full sm:w-auto text-center flex items-center justify-center gap-2 shadow-sm"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Download
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 
                 <button
                   onClick={() => setEditing(true)}
