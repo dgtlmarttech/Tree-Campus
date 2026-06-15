@@ -1,34 +1,16 @@
-import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { FiAward, FiDownload, FiArrowRight, FiBookOpen } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import domtoimage from 'dom-to-image-more';
-import jsPDF from 'jspdf';
-
-const getCertificateTemplate = (cert) => {
-    const order = cert.courseId?.seriesOrder;
-    const title = (cert.courseId?.title || cert.courseTitle || '').toLowerCase();
-    
-    if (order === 1 || title.includes('part-1') || title.includes('1 to 30')) {
-        return 'https://res.cloudinary.com/dbbll23jz/image/upload/v1780654748/Certificate-1_xnrs9y.png';
-    } else if (order === 2 || title.includes('part-2') || title.includes('31 to 60')) {
-        return 'https://res.cloudinary.com/dbbll23jz/image/upload/v1780654744/Certificate2_wsx0hl.png';
-    } else if (order === 3 || title.includes('part-3') || title.includes('61 to 90')) {
-        return 'https://res.cloudinary.com/dbbll23jz/image/upload/v1780654744/Certificate3_2_ubo89f.png';
-    }
-    
-    // Default
-    return 'https://res.cloudinary.com/dbbll23jz/image/upload/v1780654748/Certificate-1_xnrs9y.png';
-};
+import { getCertificateTemplate, downloadCertificatePDF } from '../utils/certificateUtils.jsx';
 
 const Certificate = () => {
     const [certificates, setCertificates] = useState([]);
     const [loading, setLoading] = useState(true);
     const [downloading, setDownloading] = useState(null);
     const [error, setError] = useState(null);
-    const navigate = useNavigate();
     const { user } = useAuth();
 
     useEffect(() => {
@@ -54,76 +36,14 @@ const Certificate = () => {
     const handleDownloadCertificate = async (certId) => {
         try {
             setDownloading(certId);
-            
-            // Get certificate data
             const cert = certificates.find(c => c._id === certId);
-            
             if (!cert) {
                 toast.error('Certificate not found');
                 return;
             }
-
-            // Create PDF
-            const doc = new jsPDF({
-                orientation: 'landscape',
-                unit: 'px',
-                format: [842, 595]
-            });
-
-            // Load certificate template image
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.src = getCertificateTemplate(cert);
-            
-            await new Promise((resolve, reject) => {
-                img.onload = resolve;
-                img.onerror = reject;
-            });
-
-            const width = doc.internal.pageSize.getWidth();
-            const height = doc.internal.pageSize.getHeight();
-
-            // Add template image
-            doc.addImage(img, 'JPEG', 0, 0, width, height);
-
-            // Configure text styles
-            doc.setTextColor(26, 37, 47); // Dark color matching template
-            
-            // Student Name
-            doc.setFontSize(32);
-            doc.setFont('helvetica', 'bold');
-            const name = cert.userName || user?.name || '';
-            doc.text(name, width / 2, height / 2 + 10, { align: 'center' });
-
-            // Course Name
-            doc.setFontSize(18);
-            doc.setFont('helvetica', 'bold');
-            const courseName = cert.courseId?.title || cert.courseTitle || 'Course';
-            doc.text(courseName, width / 2, height / 2 + 65, { align: 'center' });
-            
-            // Date
-            const date = new Date(cert.issuedAt).toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-            });
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'normal');
-            doc.text(date, 225, height - 90);
-
-            // Certificate ID (small text bottom right)
-            doc.setFontSize(8);
-            doc.setTextColor(128, 128, 128);
-            doc.text(`ID: ${cert.certificateNumber}`, width - 120, height - 15);
-
-            // Download
-            const fileName = `Certificate-${(cert.userName || user?.name || 'User').replace(/\s+/g, '_')}-${cert.certificateNumber || 'cert'}.pdf`;
-            doc.save(fileName);
-            
-            toast.success('Certificate downloaded successfully!');
+            await downloadCertificatePDF(cert, user);
         } catch (error) {
             console.error('Error downloading certificate:', error);
-            toast.error('Failed to download certificate. Please try again.');
         } finally {
             setDownloading(null);
         }
@@ -215,7 +135,7 @@ const Certificate = () => {
                                         <div className="absolute" style={{ bottom: '15%', left: '27%' }}>
                                             <p className="text-base font-medium text-[#1a252f] text-center"
                                                style={{ fontFamily: "'Montserrat', sans-serif" }}>
-                                                {new Date(cert.issuedAt).toLocaleDateString('en-US', { 
+                                                {new Date(cert.issuedAt || cert.createdAt).toLocaleDateString('en-US', { 
                                                     year: 'numeric', 
                                                     month: 'long', 
                                                     day: 'numeric' 

@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { authService } from '../../services/authService';
+import { downloadCertificatePDF } from '../../utils/certificateUtils.jsx';
 
 const Profile = () => {
   const { user, updateUser } = useContext(AuthContext);
@@ -17,8 +18,8 @@ const Profile = () => {
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [downloadingCert, setDownloadingCert] = useState(null);
 
-  // Sync form data with current user data
   useEffect(() => {
     if (user) {
       setFormData({
@@ -39,46 +40,38 @@ const Profile = () => {
     });
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setMessage('');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
 
-  try {
-    const updatedUser = await authService.updateProfile(formData);
+    try {
+      const updatedUser = await authService.updateProfile(formData);
+      if (!updatedUser) throw new Error("Updated user not received from server");
 
-    if (!updatedUser) {
-      throw new Error("Updated user not received from server");
+      updateUser(updatedUser);
+      setFormData({
+        name: updatedUser.name || "",
+        email: updatedUser.email || "",
+        phone: updatedUser.phone || "",
+        preferredLanguage: updatedUser.preferredLanguage || "english",
+        age: updatedUser.age || "",
+        education: updatedUser.education || ""
+      });
+
+      if (formData.preferredLanguage !== updatedUser.preferredLanguage) {
+        localStorage.setItem("preferredLanguage", updatedUser.preferredLanguage);
+      }
+
+      setEditing(false);
+      setMessage("Profile updated successfully!");
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) {
+      setMessage(error.message || "Failed to update profile");
+    } finally {
+      setLoading(false);
     }
-
-    // update global auth context
-    updateUser(updatedUser);
-
-    // IMPORTANT FIX: instantly update UI/local form state
-    setFormData({
-      name: updatedUser.name || "",
-      email: updatedUser.email || "",
-      phone: updatedUser.phone || "",
-      preferredLanguage: updatedUser.preferredLanguage || "en",
-      age: updatedUser.age || "",
-      education: updatedUser.education || ""
-    });
-
-    // save language if changed
-    if (formData.preferredLanguage !== updatedUser.preferredLanguage) {
-      localStorage.setItem("preferredLanguage", updatedUser.preferredLanguage);
-    }
-
-    setEditing(false);
-    setMessage("Profile updated successfully!");
-
-  } catch (error) {
-    setMessage(error.message || "Failed to update profile");
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   const handleCancel = () => {
     setFormData({
@@ -92,293 +85,271 @@ const handleSubmit = async (e) => {
     setEditing(false);
     setMessage('');
   };
-  
+
+  const handleDownload = async (cert) => {
+    setDownloadingCert(cert._id);
+    await downloadCertificatePDF(cert, user);
+    setDownloadingCert(null);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          {/* Header */}
-          <div className="bg-[#14B8A6] px-8 py-12">
-            <div className="flex items-center space-x-6">
-              <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-4xl font-bold text-teal-500" style={{ color: '#14B8A6' }}>
-                {user?.name?.charAt(0).toUpperCase()}
+    <div className="min-h-screen bg-slate-50 py-10">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          
+          {/* Header Section */}
+          <div className="bg-slate-800 px-8 py-10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 -mt-16 -mr-16 w-64 h-64 bg-slate-700 rounded-full opacity-20 blur-3xl"></div>
+            <div className="relative flex flex-col sm:flex-row items-center sm:items-start gap-6">
+              <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-3xl font-bold text-slate-800 shadow-md border-4 border-slate-700/50">
+                {user?.name?.charAt(0).toUpperCase() || 'U'}
               </div>
-              <div className="text-white">
-                <h1 className="text-3xl font-bold">{user?.name}</h1>
-                <p className="text-teal-100">{user?.email}</p>
-                <p className="text-teal-200 text-sm mt-1">
-                  🎓 Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}
-                </p>
-                {user?.phone && (
-                  <p className="text-teal-200 text-sm">
-                    📱 {user.phone}
-                  </p>
-                )}
-                {user?.age && (
-                  <p className="text-teal-200 text-sm">
-                    🎂 Age: {user.age}
-                  </p>
-                )}
-                {user?.isVerified && (
-                  <p className="text-teal-200 text-sm mt-1">
-                    ✅ Email Verified
-                  </p>
-                )}
+              <div className="text-center sm:text-left text-white mt-2 sm:mt-0">
+                <h1 className="text-2xl font-bold tracking-tight">{user?.name || 'User'}</h1>
+                <p className="text-slate-300 font-medium text-sm mt-1">{user?.email}</p>
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 mt-3 text-sm text-slate-400">
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Joined {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) : 'N/A'}
+                  </div>
+                  {user?.role && (
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-700/50 text-slate-200 border border-slate-600/50 capitalize">
+                      {user.role}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Content */}
           <div className="p-8">
             {message && (
-              <div className={`mb-6 p-4 rounded-lg ${
+              <div className={`mb-8 p-4 rounded-lg flex items-center gap-3 text-sm font-medium ${
                 message.includes('success') 
-                  ? 'bg-teal-50 text-teal-700 border border-teal-200' 
-                  : 'bg-red-50 text-red-700 border border-red-200'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
+                  : 'bg-red-50 text-red-700 border border-red-100'
               }`}>
                 {message}
               </div>
             )}
 
             {!editing ? (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Full Name
-                    </label>
-                    <p className="text-lg text-gray-900 font-semibold">{user?.name}</p>
+              <div className="space-y-8">
+                {/* Personal Information */}
+                <div>
+                  <div className="flex items-center justify-between mb-5">
+                    <h2 className="text-lg font-semibold text-slate-800">Personal Information</h2>
+                    <button
+                      onClick={() => setEditing(true)}
+                      className="text-sm font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-lg transition-colors"
+                    >
+                      Edit Profile
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email Address
-                    </label>
-                    <p className="text-lg text-gray-900">{user?.email}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Phone Number
-                    </label>
-                    <p className="text-lg text-gray-900">{user?.phone || '—'}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Age
-                    </label>
-                    <p className="text-lg text-gray-900">{user?.age || '—'}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Education
-                    </label>
-                    <p className="text-lg text-gray-900">{user?.education || '—'}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Account Role
-                    </label>
-                    <p className="text-lg text-gray-900 capitalize">
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${user?.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
-                        {user?.role}
-                      </span>
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Member Since
-                    </label>
-                    <p className="text-lg text-gray-900">
-                      {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Verification Status
-                    </label>
-                    <p className="text-lg flex items-center">
-                      {user?.isVerified ? (
-                        <span className="text-green-600 font-semibold">✅ Verified</span>
-                      ) : (
-                        <div className="flex items-center space-x-3">
-                          <span className="text-yellow-600 font-semibold">⏳ Pending</span>
-                          <button
-                            onClick={() => navigate('/verify-otp', { 
-                              state: { 
-                                email: user.email, 
-                                phone: user.phone, 
-                                mode: 'register',
-                                triggerAutoResend: true 
-                              } 
-                            })}
-                            className="text-white text-xs px-3 py-1 rounded-full hover:opacity-90 transition font-medium"
-                            style={{ backgroundColor: '#14B8A6' }}
-                          >
-                            Verify Now
-                          </button>
-                        </div>
-                      )}
-                    </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                    <div>
+                      <p className="text-sm font-medium text-slate-500 mb-1">Phone Number</p>
+                      <p className="text-slate-900">{user?.phone || 'Not provided'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-500 mb-1">Age</p>
+                      <p className="text-slate-900">{user?.age ? `${user.age} years` : 'Not provided'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-500 mb-1">Education</p>
+                      <p className="text-slate-900">{user?.education || 'Not provided'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-500 mb-1">Preferred Language</p>
+                      <p className="text-slate-900 capitalize">{user?.preferredLanguage || 'English'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-500 mb-1">Account Status</p>
+                      <div className="flex items-center">
+                        {user?.isVerified ? (
+                          <span className="inline-flex items-center gap-1.5 text-emerald-600 font-medium">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                            Verified
+                          </span>
+                        ) : (
+                          <div className="flex items-center gap-3">
+                            <span className="text-amber-600 font-medium">Unverified</span>
+                            <button
+                              onClick={() => navigate('/verify-otp', { state: { email: user.email, phone: user.phone, mode: 'register', triggerAutoResend: true } })}
+                              className="text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-md transition-colors"
+                            >
+                              Verify Now
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {user?.enrolledCourses && user.enrolledCourses.length > 0 && (
-                  <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-gray-900 mb-2">📚 Enrolled Courses</h3>
-                    <p className="text-lg font-bold" style={{ color: '#14B8A6' }}>{user.enrolledCourses.length} courses</p>
-                  </div>
-                )}
+                <hr className="border-slate-100" />
 
-                {user?.completedLessons && user.completedLessons.length > 0 && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-gray-900 mb-2">✅ Completed Lessons</h3>
-                    <p className="text-lg font-bold text-green-700">{user.completedLessons.length} lessons completed</p>
-                  </div>
-                )}
-
-                {user?.certificates && user.certificates.length > 0 && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-gray-900 mb-3">🎓 Earned Certificates</h3>
-                    <div className="space-y-3">
-                      {user.certificates.map((cert) => (
-                        <div key={cert._id} className="bg-white p-4 rounded-lg border border-amber-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-sm">
-                          <div>
-                            <p className="font-semibold text-gray-800">{cert.courseTitle || 'Course Certificate'}</p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Issued: {new Date(cert.issuedAt || cert.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                            </p>
-                            <p className="text-xs text-amber-600 font-medium mt-0.5">
-                              ID: {cert.certificateNumber}
-                            </p>
+                {/* Stats Section */}
+                {(user?.enrolledCourses?.length > 0 || user?.completedLessons?.length > 0) && (
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-800 mb-5">Learning Progress</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {user?.enrolledCourses?.length > 0 && (
+                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-5 flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xl">
+                            📚
                           </div>
-                          <button
-                            onClick={() => navigate('/certificate')}
-                            className="px-4 py-2 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600 transition w-full sm:w-auto text-center flex items-center justify-center gap-2 shadow-sm"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            Download
-                          </button>
+                          <div>
+                            <p className="text-sm font-medium text-slate-500">Enrolled Courses</p>
+                            <p className="text-2xl font-bold text-slate-900">{user.enrolledCourses.length}</p>
+                          </div>
                         </div>
-                      ))}
+                      )}
+                      {user?.completedLessons?.length > 0 && (
+                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-5 flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xl">
+                            ✅
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-slate-500">Completed Lessons</p>
+                            <p className="text-2xl font-bold text-slate-900">{user.completedLessons.length}</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
-                
-                <button
-                  onClick={() => setEditing(true)}
-                  className="w-full py-3 text-white rounded-lg hover:opacity-90 transition font-semibold"
-                  style={{ backgroundColor: '#14B8A6' }}
-                >
-                  Edit Profile
-                </button>
+
+                {/* Certificates Section */}
+                {user?.certificates?.length > 0 && (
+                  <>
+                    <hr className="border-slate-100" />
+                    <div>
+                      <h2 className="text-lg font-semibold text-slate-800 mb-5">Earned Certificates</h2>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {user.certificates.map((cert) => (
+                          <div key={cert._id} className="bg-white border border-slate-200 rounded-lg p-5 flex flex-col justify-between">
+                            <div>
+                              <h3 className="font-semibold text-slate-900">{cert.courseTitle || 'Course Certificate'}</h3>
+                              <p className="text-sm text-slate-500 mt-1">Issued: {new Date(cert.issuedAt || cert.createdAt).toLocaleDateString()}</p>
+                              <p className="text-xs text-slate-400 font-mono mt-1">ID: {cert.certificateNumber}</p>
+                            </div>
+                            <button
+                              onClick={() => handleDownload(cert)}
+                              disabled={downloadingCert === cert._id}
+                              className="mt-4 w-full py-2 bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                              {downloadingCert === cert._id ? (
+                                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                              ) : (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                              )}
+                              {downloadingCert === cert._id ? 'Downloading...' : 'Download Certificate'}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Name *
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition"
-                      style={{ '--tw-ring-color': '#14B8A6' }}
-                      required
-                    />
+              /* Edit Form */
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-semibold text-slate-800">Edit Profile</h2>
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Full Name *</label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-800 focus:border-slate-800 outline-none transition-all"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Email Address</label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        className="w-full px-4 py-2.5 bg-slate-100 text-slate-500 border border-slate-300 rounded-lg outline-none cursor-not-allowed"
+                        disabled
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Phone Number</label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={formData.phone}
+                        className="w-full px-4 py-2.5 bg-slate-100 text-slate-500 border border-slate-300 rounded-lg outline-none cursor-not-allowed"
+                        disabled
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Age</label>
+                      <input
+                        type="number"
+                        name="age"
+                        value={formData.age}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-800 focus:border-slate-800 outline-none transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Education</label>
+                      <input
+                        type="text"
+                        name="education"
+                        value={formData.education}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-800 focus:border-slate-800 outline-none transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Preferred Language</label>
+                      <select
+                        name="preferredLanguage"
+                        value={formData.preferredLanguage}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-800 focus:border-slate-800 outline-none transition-all"
+                      >
+                        <option value="english">English</option>
+                        <option value="hindi">Hindi</option>
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email *
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition"
-                      style={{ '--tw-ring-color': '#14B8A6' }}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone
-                    </label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition"
-                      style={{ '--tw-ring-color': '#14B8A6' }}
-                      placeholder="+1 234 567 8900"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Age
-                    </label>
-                    <input
-                      type="number"
-                      name="age"
-                      value={formData.age}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition"
-                      style={{ '--tw-ring-color': '#14B8A6' }}
-                      placeholder="e.g. 25"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Education
-                    </label>
-                    <input
-                      type="text"
-                      name="education"
-                      value={formData.education}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition"
-                      style={{ '--tw-ring-color': '#14B8A6' }}
-                      placeholder="e.g. Undergraduate"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Preferred Language
-                    </label>
-                    <select
-                      name="preferredLanguage"
-                      value={formData.preferredLanguage}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition"
-                      style={{ '--tw-ring-color': '#14B8A6' }}
+                  
+                  <div className="flex items-center justify-end gap-4 pt-4 mt-6 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={handleCancel}
+                      className="px-6 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
                     >
-                      <option value="english">English</option>
-                      <option value="hindi">Hindi</option>
-                    </select>
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="px-6 py-2.5 text-sm font-medium text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition-colors disabled:opacity-50 flex items-center justify-center min-w-[140px]"
+                    >
+                      {loading ? 'Saving...' : 'Save Changes'}
+                    </button>
                   </div>
-                </div>
-                
-                <div className="flex space-x-4">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="flex-1 py-3 text-white rounded-lg hover:opacity-90 transition font-semibold disabled:opacity-50"
-                    style={{ backgroundColor: '#14B8A6' }}
-                  >
-                    {loading ? 'Saving...' : 'Save Changes'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCancel}
-                    className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
+                </form>
+              </div>
             )}
           </div>
         </div>

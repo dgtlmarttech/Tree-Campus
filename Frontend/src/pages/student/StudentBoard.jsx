@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../context/AuthContext';
+import { downloadCertificatePDF } from '../../utils/certificateUtils.jsx';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { 
@@ -26,7 +28,15 @@ const StudentDashboard = () => {
   const [error, setError] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAllCourses, setShowAllCourses] = useState(false);
+  const [downloadingCert, setDownloadingCert] = useState(null);
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
+
+  const handleDownload = async (cert) => {
+    setDownloadingCert(cert._id);
+    await downloadCertificatePDF(cert, user);
+    setDownloadingCert(null);
+  };
 
   const joinClass = (classItem) => {
     console.log('🔗 Joining class:', classItem._id, 'Status:', classItem.status);
@@ -375,24 +385,54 @@ const StudentDashboard = () => {
         {/* Right Column */}
         <div className="space-y-6">
           {/* Certificates Quick Access */}
-          <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl shadow-lg p-6 text-white animate-fadeInUp" style={{ animationDelay: '250ms' }}>
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                <FiAward className="w-6 h-6 text-white" />
+          <div className="bg-white rounded-2xl shadow-lg p-6 animate-fadeInUp" style={{ animationDelay: '250ms' }}>
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="p-2 bg-amber-100 rounded-lg">
+                <FiAward className="w-6 h-6 text-amber-600" />
               </div>
-              <h2 className="text-xl font-bold text-white">My Certificates</h2>
+              <h2 className="text-xl font-bold text-gray-900">My Certificates</h2>
             </div>
-            <p className="text-amber-50 text-sm mb-5">
-              {safeStats.totalCertificates > 0 
-                ? `You have earned ${safeStats.totalCertificates} certificate${safeStats.totalCertificates > 1 ? 's' : ''}! View and download them here.` 
-                : "Complete courses and pass exams to earn your verified certificates."}
-            </p>
-            <Link
-              to="/certificate"
-              className="block w-full py-2.5 bg-white text-amber-600 text-center font-bold rounded-xl hover:bg-gray-50 transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-            >
-              Go to Certificates <FiArrowRight className="w-4 h-4" />
-            </Link>
+            
+            {user?.certificates?.length > 0 ? (
+              <div className="space-y-4">
+                {user.certificates.map((cert) => (
+                  <div key={cert._id} className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex flex-col justify-between hover:border-amber-200 transition-colors">
+                    <div>
+                      <h3 className="font-semibold text-gray-900 text-sm">{cert.courseTitle || 'Course Certificate'}</h3>
+                      <p className="text-xs text-gray-500 mt-1">Issued: {new Date(cert.issuedAt || cert.createdAt).toLocaleDateString()}</p>
+                      <p className="text-xs text-gray-400 font-mono mt-1">ID: {cert.certificateNumber}</p>
+                    </div>
+                    <button
+                      onClick={() => handleDownload(cert)}
+                      disabled={downloadingCert === cert._id}
+                      className="mt-4 w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {downloadingCert === cert._id ? (
+                        <svg className="animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      ) : (
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                      )}
+                      {downloadingCert === cert._id ? 'Downloading...' : 'Download Certificate'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-gray-500 text-sm mb-4">
+                  Complete courses and pass exams to earn your verified certificates.
+                </p>
+                <Link
+                  to="/certificate"
+                  className="block w-full py-2.5 bg-gray-100 text-gray-600 text-center font-bold rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+                >
+                  Go to Certificates <FiArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Recent Activity */}
