@@ -22,7 +22,7 @@ import analyticsRoutes from './routes/analyticsRoutes.js';
 import enrollmentRoutes from './routes/enrollmentRoutes.js';
 import volunteerRoutes from './routes/volunteerRoutes.js'
 import accountDeletion from './routes/accountDeletion.js';
-import registerSchool from'./routes/schoolRegistration.js';
+import registerSchool from './routes/schoolRegistration.js';
 import assignmentRoutes from './routes/assignmentRoutes.js';
 import contestRoutes from './routes/contestRoutes.js';
 import adminContestRoutes from './routes/adminContestRoutes.js';
@@ -50,8 +50,8 @@ connectDB();
 
 // CORS must be FIRST
 app.use(cors({
-  origin: ['http://localhost:5173','http://localhost:5174', 'https://treecampus.netlify.app','https://courses.treecampus.in'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE','PATCH','Options'],
+  origin: ['http://localhost:5173', 'http://localhost:5174', 'https://treecampus.netlify.app', 'https://courses.treecampus.in'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'Options'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   exposedHeaders: ['Visemes', 'Content-Disposition'],
   credentials: true,
@@ -120,7 +120,7 @@ app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/volunteer', volunteerRoutes);
 app.use('/api/teachers', teacherApplicationRoutes);
 app.use('/api/account-deletion-request', accountDeletion);
-app.use('/api/registerschool',registerSchool);
+app.use('/api/registerschool', registerSchool);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/contest', contestRoutes);
 app.use('/api/admin/contest', adminContestRoutes);
