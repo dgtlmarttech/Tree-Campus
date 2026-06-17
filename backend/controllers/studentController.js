@@ -1,3 +1,4 @@
+
 import User from '../models/User.js';
 import Course from '../models/Course.js';
 import Lesson from '../models/Lesson.js';
@@ -324,17 +325,22 @@ export const getStudents = async (req, res) => {
     // Build base query using $and to safely combine conditions
     const conditions = [{ role: 'student' }];
 
-    const filterDate = req.query.filterDate;
+    const { fromDate, toDate } = req.query;
 
-    // Date filtering on Joined (createdAt) for a single day
-    if (filterDate) {
-      const startOfDay = new Date(filterDate);
-      startOfDay.setHours(0, 0, 0, 0);
-      
-      const endOfDay = new Date(filterDate);
-      endOfDay.setHours(23, 59, 59, 999);
-      
-      conditions.push({ createdAt: { $gte: startOfDay, $lte: endOfDay } });
+    // Date filtering on Joined (createdAt) with from/to range
+    if (fromDate || toDate) {
+      const dateCondition = {};
+      if (fromDate) {
+        const startOfDay = new Date(fromDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        dateCondition.$gte = startOfDay;
+      }
+      if (toDate) {
+        const endOfDay = new Date(toDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        dateCondition.$lte = endOfDay;
+      }
+      conditions.push({ createdAt: dateCondition });
     }
 
     if (searchTerm) {
@@ -349,9 +355,24 @@ export const getStudents = async (req, res) => {
 
     // Status filter using Enrollment collection data
     if (status === 'active') {
-      conditions.push({ _id: { $in: activeUserIds } });
+      conditions.push({
+        $or: [
+          { _id: { $in: activeUserIds } },
+          { enrolledCourses: { $exists: true, $not: { $size: 0 } } }
+        ]
+      });
     } else if (status === 'inactive') {
-      conditions.push({ _id: { $nin: activeUserIds } });
+      conditions.push({
+        $and: [
+          { _id: { $nin: activeUserIds } },
+          {
+            $or: [
+              { enrolledCourses: { $exists: false } },
+              { enrolledCourses: { $size: 0 } }
+            ]
+          }
+        ]
+      });
     }
 
     // Enrollment filter (All / Enrolled / Not Enrolled)

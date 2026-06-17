@@ -14,7 +14,8 @@ const StudentAnalytics = () => {
   const [totalStudents, setTotalStudents] = useState(0);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterEnrollment, setFilterEnrollment] = useState('all');
-  const [filterDate, setFilterDate] = useState('');
+  const [filterFromDate, setFilterFromDate] = useState('');
+  const [filterToDate, setFilterToDate] = useState('');
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [editFormData, setEditFormData] = useState({});
@@ -57,7 +58,7 @@ const StudentAnalytics = () => {
     } else {
       fetchStudents(1);
     }
-  }, [filterStatus, filterEnrollment, filterDate]);
+  }, [filterStatus, filterEnrollment, filterFromDate, filterToDate]);
 
   const fetchStudents = async (page = 1, isBackground = false) => {
     try {
@@ -68,8 +69,9 @@ const StudentAnalytics = () => {
       }
 
       let url = `/students?page=${page}&limit=10&search=${searchTerm}&status=${filterStatus}&enrollment=${filterEnrollment}`;
-      if (filterDate) url += `&filterDate=${filterDate}`;
-      
+      if (filterFromDate) url += `&fromDate=${filterFromDate}`;
+      if (filterToDate) url += `&toDate=${filterToDate}`;
+
       const response = await api.get(url);
       setStudents(response.data.data || []);
       setTotalPages(response.data.totalPages || 1);
@@ -389,19 +391,32 @@ const StudentAnalytics = () => {
 
             {/* Filter */}
             <div className="flex flex-wrap items-center gap-2">
-              {/* Single Date Filter */}
-              <div className="flex items-center space-x-1 border border-gray-300 rounded-lg px-2 bg-white">
-                <input
-                  type="date"
-                  className="px-1 py-2 focus:outline-none text-sm text-gray-700 bg-transparent cursor-pointer"
-                  value={filterDate}
-                  onChange={(e) => setFilterDate(e.target.value)}
-                />
-                {filterDate && (
+              {/* Date Filter */}
+              <div className="flex items-center space-x-2 border border-gray-300 rounded-lg px-2 bg-white">
+                <div className="flex items-center">
+                  <span className="text-xs text-gray-500 mr-1">From:</span>
+                  <input
+                    type="date"
+                    className="px-1 py-2 focus:outline-none text-sm text-gray-700 bg-transparent cursor-pointer"
+                    value={filterFromDate}
+                    onChange={(e) => setFilterFromDate(e.target.value)}
+                  />
+                </div>
+                <div className="h-4 border-r border-gray-300"></div>
+                <div className="flex items-center">
+                  <span className="text-xs text-gray-500 mr-1">To:</span>
+                  <input
+                    type="date"
+                    className="px-1 py-2 focus:outline-none text-sm text-gray-700 bg-transparent cursor-pointer"
+                    value={filterToDate}
+                    onChange={(e) => setFilterToDate(e.target.value)}
+                  />
+                </div>
+                {(filterFromDate || filterToDate) && (
                   <button
-                    onClick={() => setFilterDate('')}
-                    className="text-gray-400 hover:text-red-500 transition-colors p-1 flex items-center justify-center"
-                    title="Clear date filter"
+                    onClick={() => { setFilterFromDate(''); setFilterToDate(''); }}
+                    className="text-gray-400 hover:text-red-500 transition-colors p-1 flex items-center justify-center ml-1"
+                    title="Clear date filters"
                   >
                     <FiXCircle className="w-4 h-4" />
                   </button>
