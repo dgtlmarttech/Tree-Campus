@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import AccountDeletion from '../models/AccountDeletion.js';
 import { sendAccountDeletionConfirmation } from '../utils/sendEmail.js';
 
-// @desc    Submit account deletion request
+// @desc    Submit account deletion requests
 // @route   POST /api/account-deletion-request
 // @access  Public
 export const createDeletionRequest = async (req, res, next) => {
@@ -201,7 +201,7 @@ export const updateDeletionStatus = async (req, res, next) => {
 
     const request = await AccountDeletion.findByIdAndUpdate(
       req.params.id,
-      { 
+      {
         status,
         ...(status === 'completed' && { completedAt: new Date() })
       },
