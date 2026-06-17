@@ -34,7 +34,7 @@ export const getStudentDashboard = async (req, res) => {
     // I will load it dynamically inside the function or file. 
     // Actually, I can use `await import('../models/Progress.js')` or just rely on a separate edit to add the import.
     // For safety, I will do a multi_replace including the import.
-    
+
     // FETCH PROGRESS FOR ALL COURSES
     // We'll find all Progress documents for this user
     const Progress = (await import('../models/Progress.js')).default;
@@ -57,7 +57,7 @@ export const getStudentDashboard = async (req, res) => {
 
           // Count total lessons in course
           const totalLessons = await Lesson.countDocuments({ courseId });
-          
+
           let completedCount = 0;
           let realProgress = 0;
           let currentDay = null;
@@ -70,40 +70,40 @@ export const getStudentDashboard = async (req, res) => {
 
           let nextLessonId = null;
           if (progressDoc) {
-             completedCount = progressDoc.completedLessons.length;
-             realProgress = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+            completedCount = progressDoc.completedLessons.length;
+            realProgress = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
 
-             // Figure out which day (section) the student is currently on
-             const completedLessonIds = new Set(
-               progressDoc.completedLessons
-                 .filter(cl => cl && cl.lesson)
-                 .map(cl => cl.lesson.toString())
-             );
+            // Figure out which day (section) the student is currently on
+            const completedLessonIds = new Set(
+              progressDoc.completedLessons
+                .filter(cl => cl && cl.lesson)
+                .map(cl => cl.lesson.toString())
+            );
 
-             console.log(`[Dashboard] Course ${courseId}: ${completedLessonIds.size} completed lessons found in Progress.`);
+            console.log(`[Dashboard] Course ${courseId}: ${completedLessonIds.size} completed lessons found in Progress.`);
 
-             for (let i = 0; i < sections.length; i++) {
-               const sectionLessons = await Lesson.find({ sectionId: sections[i]._id }).sort({ order: 1 }).select('_id');
-               const firstUncompleted = sectionLessons.find(l => !completedLessonIds.has(l._id.toString()));
-               
-               if (firstUncompleted) {
-                 currentDay = i + 1; 
-                 currentDayTitle = sections[i].title;
-                 nextLessonId = firstUncompleted._id;
-                 console.log(`[Dashboard] Found next lesson ${nextLessonId} in section "${currentDayTitle}"`);
-                 break;
-               }
-             }
+            for (let i = 0; i < sections.length; i++) {
+              const sectionLessons = await Lesson.find({ sectionId: sections[i]._id }).sort({ order: 1 }).select('_id');
+              const firstUncompleted = sectionLessons.find(l => !completedLessonIds.has(l._id.toString()));
 
-             // If all sections completed, or no nextLessonId found yet
-             if (!nextLessonId && sections.length > 0) {
-               console.log(`[Dashboard] No uncompleted lesson found in sections. Falling back to last lesson or overview.`);
-               currentDay = sections.length;
-               currentDayTitle = sections[sections.length - 1].title;
-               const lastSectionId = sections[sections.length - 1]._id;
-               const lastLesson = await Lesson.findOne({ sectionId: lastSectionId }).sort({ order: -1 }).select('_id');
-               if (lastLesson) nextLessonId = lastLesson._id;
-             }
+              if (firstUncompleted) {
+                currentDay = i + 1;
+                currentDayTitle = sections[i].title;
+                nextLessonId = firstUncompleted._id;
+                console.log(`[Dashboard] Found next lesson ${nextLessonId} in section "${currentDayTitle}"`);
+                break;
+              }
+            }
+
+            // If all sections completed, or no nextLessonId found yet
+            if (!nextLessonId && sections.length > 0) {
+              console.log(`[Dashboard] No uncompleted lesson found in sections. Falling back to last lesson or overview.`);
+              currentDay = sections.length;
+              currentDayTitle = sections[sections.length - 1].title;
+              const lastSectionId = sections[sections.length - 1]._id;
+              const lastLesson = await Lesson.findOne({ sectionId: lastSectionId }).sort({ order: -1 }).select('_id');
+              if (lastLesson) nextLessonId = lastLesson._id;
+            }
           } else {
             console.log(`[Dashboard] No progressDoc for course ${courseId}. Starting at Day 1.`);
             if (sections.length > 0) {
@@ -115,7 +115,7 @@ export const getStudentDashboard = async (req, res) => {
           }
 
           if (nextLessonId) {
-             nextLessonId = nextLessonId.toString();
+            nextLessonId = nextLessonId.toString();
           }
 
           return {
@@ -139,15 +139,15 @@ export const getStudentDashboard = async (req, res) => {
     const finalEnrollments = enrolledCoursesWithProgress.filter(e => e !== null);
     console.log(`[Dashboard Debug] Student ${studentId} has ${finalEnrollments.length} enrollments.`);
     if (finalEnrollments.length > 0) {
-        console.log(`[Dashboard Debug] First enrollment nextLessonId: ${finalEnrollments[0].nextLessonId}`);
+      console.log(`[Dashboard Debug] First enrollment nextLessonId: ${finalEnrollments[0].nextLessonId}`);
     }
 
     // Calculate overall statistics
     const totalEnrolledCourses = finalEnrollments.length;
-    
+
     // Total Completed Lessons across all courses (sum of completed in each valid enrollment)
     const totalCompletedLessons = finalEnrollments.reduce((sum, e) => sum + e.completedLessons, 0);
-    
+
     const totalCertificates = student.certificates.length;
 
     // Calculate overall progress
@@ -161,15 +161,15 @@ export const getStudentDashboard = async (req, res) => {
     // Aggregate all completed lessons from all progress docs
     let allCompletedLessons = [];
     progressDocs.forEach(doc => {
-       if (doc.completedLessons && doc.completedLessons.length > 0) {
-           doc.completedLessons.forEach(cl => {
-               allCompletedLessons.push({
-                   lessonId: cl.lesson,
-                   completedAt: cl.completedAt,
-                   courseId: doc.course
-               });
-           });
-       }
+      if (doc.completedLessons && doc.completedLessons.length > 0) {
+        doc.completedLessons.forEach(cl => {
+          allCompletedLessons.push({
+            lessonId: cl.lesson,
+            completedAt: cl.completedAt,
+            courseId: doc.course
+          });
+        });
+      }
     });
 
     // Sort by completedAt desc and take top 5
@@ -179,25 +179,25 @@ export const getStudentDashboard = async (req, res) => {
 
     // Populate lesson details for recent activity
     const recentActivity = await Promise.all(recentCompletionsData.map(async (item) => {
-        const lesson = await Lesson.findById(item.lessonId).select('title');
-        const course = await Course.findById(item.courseId).select('title');
-        
-        if (!lesson || !course) return null;
+      const lesson = await Lesson.findById(item.lessonId).select('title');
+      const course = await Course.findById(item.courseId).select('title');
 
-        return {
-            lessonId: String(item.lessonId),
-            courseId: String(item.courseId),
-            lessonTitle: lesson.title,
-            courseTitle: course.title,
-            completedAt: item.completedAt
-        };
+      if (!lesson || !course) return null;
+
+      return {
+        lessonId: String(item.lessonId),
+        courseId: String(item.courseId),
+        lessonTitle: lesson.title,
+        courseTitle: course.title,
+        completedAt: item.completedAt
+      };
     }));
 
     const finalRecentActivity = recentActivity.filter(Boolean);
     console.log(`[Dashboard Debug] Sending ${finalRecentActivity.length} activities. First courseId: ${finalRecentActivity[0]?.courseId}`);
     console.log(`[Dashboard] Sent ${finalRecentActivity.length} recent activities for student ${studentId}`);
     if (finalRecentActivity.length > 0) {
-        console.log(`[Dashboard] Sample activity:`, JSON.stringify(finalRecentActivity[0]));
+      console.log(`[Dashboard] Sample activity:`, JSON.stringify(finalRecentActivity[0]));
     }
 
 
@@ -235,18 +235,18 @@ export const getStudentDashboard = async (req, res) => {
 
     // Get recommended courses
     let recommendedCourses = [];
-    
+
     if (finalEnrollments.length > 0) {
       const enrolledCategories = [...new Set(
         finalEnrollments
           .map(e => e.courseId?.category)
           .filter(Boolean)
       )];
-      
+
       const enrolledCourseIds = finalEnrollments
         .map(e => e.courseId?._id)
         .filter(Boolean);
-      
+
       if (enrolledCategories.length > 0) {
         recommendedCourses = await Course.find({
           category: { $in: enrolledCategories },
@@ -258,7 +258,7 @@ export const getStudentDashboard = async (req, res) => {
           .limit(4);
       }
     }
-    
+
     if (recommendedCourses.length === 0) {
       recommendedCourses = await Course.find({ isPublished: true })
         .select('title thumbnail category rating enrollmentCount')
@@ -324,6 +324,19 @@ export const getStudents = async (req, res) => {
     // Build base query using $and to safely combine conditions
     const conditions = [{ role: 'student' }];
 
+    const filterDate = req.query.filterDate;
+
+    // Date filtering on Joined (createdAt) for a single day
+    if (filterDate) {
+      const startOfDay = new Date(filterDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      
+      const endOfDay = new Date(filterDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      conditions.push({ createdAt: { $gte: startOfDay, $lte: endOfDay } });
+    }
+
     if (searchTerm) {
       conditions.push({
         $or: [
@@ -356,10 +369,12 @@ export const getStudents = async (req, res) => {
       conditions.push({
         $and: [
           { _id: { $nin: activeUserIds } },
-          { $or: [
-            { enrolledCourses: { $exists: false } },
-            { enrolledCourses: { $size: 0 } }
-          ]}
+          {
+            $or: [
+              { enrolledCourses: { $exists: false } },
+              { enrolledCourses: { $size: 0 } }
+            ]
+          }
         ]
       });
     }
@@ -379,7 +394,7 @@ export const getStudents = async (req, res) => {
     const allStudentUsers = await User.find({ role: 'student' }).select('enrolledCourses');
     let activeStudentsCount = 0;
     let totalEnrollments = 0;
-    
+
     allStudentUsers.forEach(u => {
       const dbCount = enrollmentMap.get(String(u._id)) || 0;
       const arrCount = u.enrolledCourses?.length || 0;
@@ -404,13 +419,13 @@ export const getStudents = async (req, res) => {
       const s = student.toObject();
       const dbEnrollmentCount = pageEnrollmentMap.get(String(s._id)) || 0;
       const userEnrollmentCount = s.enrolledCourses?.length || 0;
-      
+
       // Use the higher count of the two (handles legacy and new enrollment systems)
       s.realEnrollmentCount = Math.max(dbEnrollmentCount, userEnrollmentCount);
-      
+
       // A student is active if they have at least one enrollment record
       s.isActive = s.realEnrollmentCount > 0;
-      
+
       return s;
     });
 
@@ -469,7 +484,7 @@ export const getStudent = async (req, res) => {
 export const updateStudent = async (req, res) => {
   try {
     const { name, email, phone, password, age, education } = req.body;
-    
+
     let student = await User.findById(req.params.id);
 
     if (!student) {
@@ -485,7 +500,7 @@ export const updateStudent = async (req, res) => {
     if (phone) student.phone = phone;
     if (age) student.age = age;
     if (education) student.education = education;
-    
+
     // If password is provided, it will be hashed by the User model's pre-save hook
     if (password) {
       student.password = password;

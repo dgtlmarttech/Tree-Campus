@@ -74,7 +74,7 @@ export const getCertificateStatus = async (req, res) => {
       .populate('certificates');
 
     const coursesWithStatus = user.enrolledCourses.map(enrollment => {
-      const hasCertificate = user.certificates.some(cert => 
+      const hasCertificate = user.certificates.some(cert =>
         cert.courseId && cert.courseId.toString() === enrollment.courseId._id.toString()
       );
 
@@ -133,11 +133,11 @@ export const saveCertificateFromMobile = async (req, res) => {
     // 1. If seriesKey is provided, find the FIRST incomplete part the user is enrolled in
     if (seriesKey) {
       const seriesCourses = await Course.find({ seriesKey }).sort({ seriesOrder: 1 });
-      
+
       if (seriesCourses.length === 0) {
         return res.status(404).json({ success: false, message: `Series ${seriesKey} not found` });
       }
-      
+
       const enrolledCourseIds = user.enrolledCourses.map(e => e.courseId.toString());
 
       // Find the first course in the series that isn't completed yet
@@ -170,12 +170,12 @@ export const saveCertificateFromMobile = async (req, res) => {
       } else {
         courseId = currentPart._id;
       }
-      
+
       console.log(`ℹ️ Auto-identified current part in series: ${courseId}`);
-    } 
+    }
     // 2. If no courseId but courseTitle is provided, find by Title
     else if (!courseId && courseTitle) {
-      const foundCourse = await Course.findOne({ 
+      const foundCourse = await Course.findOne({
         $or: [
           { title: { $regex: new RegExp(`^${courseTitle}$`, 'i') } },
           { certificateTitle: { $regex: new RegExp(`^${courseTitle}$`, 'i') } }
@@ -280,7 +280,7 @@ export const saveCertificateFromMobile = async (req, res) => {
     if (courseId) {
       const enrolledCourseIds = user.enrolledCourses.map(e => e.courseId.toString());
       const coursesToUpdate = [courseId];
-      
+
       // If it's a series and we are at the final part, check other parts
       if (course && course.seriesKey && isFinalPart) {
         const seriesCourses = await Course.find({ seriesKey: course.seriesKey });
@@ -295,7 +295,7 @@ export const saveCertificateFromMobile = async (req, res) => {
 
       await Promise.all(coursesToUpdate.map(cid => (async () => {
         const cidStr = cid.toString();
-        
+
         // Update Progress only if already enrolled/exists
         await Progress.findOneAndUpdate(
           { user: userId, course: cid },
@@ -381,6 +381,58 @@ export const verifyCertificate = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error verifying certificate',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get all certificates (Admin)
+// @route   GET /api/certificates/admin/all
+// @access  Private/Admin
+export const getAllCertificatesAdmin = async (req, res) => {
+  try {
+    const { search = '', page = 1, limit = 20 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build a base query
+    let query = {};
+
+    const certificates = await Certificate.find(query)
+      .populate('userId', 'name email')
+      .populate('courseId', 'title')
+      .sort('-issuedAt')
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+
+    // If search is provided, filter after populate (since we need user name/email)
+    let filtered = certificates;
+    if (search.trim()) {
+      const term = search.trim().toLowerCase();
+      filtered = certificates.filter(cert => {
+        const userName = cert.userId?.name?.toLowerCase() || '';
+        const userEmail = cert.userId?.email?.toLowerCase() || '';
+        const courseTitle = cert.courseTitle?.toLowerCase() || cert.courseId?.title?.toLowerCase() || '';
+        const certNumber = cert.certificateNumber?.toLowerCase() || '';
+        return userName.includes(term) || userEmail.includes(term) || courseTitle.includes(term) || certNumber.includes(term);
+      });
+    }
+
+    const totalCount = await Certificate.countDocuments(query);
+
+    res.status(200).json({
+      success: true,
+      count: filtered.length,
+      total: totalCount,
+      totalPages: Math.ceil(totalCount / parseInt(limit)),
+      currentPage: parseInt(page),
+      data: filtered
+    });
+  } catch (error) {
+    console.error('Error fetching all certificates:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching certificates',
       error: error.message
     });
   }
