@@ -67,6 +67,13 @@ const AssignmentTest = () => {
     return () => clearInterval(timer);
   }, [testStarted, timeRemaining]);
 
+  // Scroll to top when test starts
+  useEffect(() => {
+    if (testStarted) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [testStarted]);
+
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -253,10 +260,14 @@ const AssignmentTest = () => {
 
         {/* Header */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">{assignment.title}</h1>
-              <p className="text-gray-600">{assignment.description}</p>
+          <div className={`flex flex-col sm:flex-row justify-between items-start gap-4 ${testStarted ? 'mb-2' : 'mb-4'}`}>
+            <div className="flex-1">
+              <h1 className={`${testStarted ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl md:text-3xl'} font-bold text-gray-800 mb-1 sm:mb-2`}>
+                {assignment.title}
+              </h1>
+              {!testStarted && (
+                <p className="text-sm sm:text-base text-gray-600">{assignment.description}</p>
+              )}
               
               {/* Attempt Counter */}
               {eligibilityStatus?.attemptCount !== undefined && !testStarted && (
@@ -273,25 +284,27 @@ const AssignmentTest = () => {
               )}
             </div>
             {testStarted ? (
-              <div className={`text-3xl font-bold p-3 rounded-lg ${
+              <div className={`text-xl sm:text-2xl font-bold px-4 py-2 rounded-lg w-full sm:w-auto text-center ${
                 timeRemaining < 300 ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
               }`}>
                 {formatTime(timeRemaining)}
               </div>
             ) : (
-              <div className="hidden sm:block">
+              <div className="w-full sm:w-auto mt-2 sm:mt-0">
                   <button
                     onClick={() => setTestStarted(true)}
-                    className="bg-[#115E59] text-white px-6 py-2.5 rounded-lg font-bold hover:bg-[#0F766E] transition-all flex items-center gap-2 shadow-sm whitespace-nowrap cursor-pointer"
+                    className="w-full sm:w-auto bg-[#115E59] text-white px-6 py-3 sm:py-2.5 rounded-lg font-bold hover:bg-[#0F766E] transition-all flex items-center justify-center gap-2 shadow-sm whitespace-nowrap cursor-pointer"
                   >
-                    <FiPlay className="w-4 h-4 fill-current" />
-                    Start Assignment
+                    <FiPlay className="w-5 h-5 sm:w-4 sm:h-4 fill-current" />
+                    Start Exam
                   </button>
               </div>
             )}
           </div>
 
 {!testStarted ? (
+  <>
+  {/* The Start button is now integrated in the header for all screen sizes */}
   <div className="bg-white rounded-2xl shadow-md overflow-hidden flex flex-col lg:flex-row">
 
     {/* Left Panel */}
@@ -380,11 +393,12 @@ const AssignmentTest = () => {
         className="w-full bg-[#115E59] text-white py-3.5 rounded-xl font-bold text-base hover:bg-[#0F766E] transition-all duration-200 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
       >
         <FiPlay className="w-5 h-5 fill-current" />
-        Start Assignment
+        Start Exam
       </button>
 
     </div>
   </div>
+  </>
 ) : (
             <div className="flex items-center gap-4">
               <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">

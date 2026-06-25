@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AIFloatingButton = () => {
   const [isHovered, setIsHovered] = useState(false);
+  const location = useLocation();
+
+  // Hide on assignment pages and admin routes to avoid overlapping with interfaces
+  if (location.pathname.includes('/assignment/') || location.pathname.startsWith('/admin')) {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-24 right-6 z-[100] flex items-center gap-3">
