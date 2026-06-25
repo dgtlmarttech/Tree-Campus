@@ -9,13 +9,17 @@ import {
   getSubmission,
   getCourseAssignmentsAdmin,
   updateAssignment,
-  deleteAssignment
+  deleteAssignment,
+  getAllSubmissionsAdmin,
+  deleteSubmissionAdmin
 } from '../controllers/assignmentController.js';
 import { protect, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // Admin routes
+router.get('/submissions/all', protect, authorize('admin'), getAllSubmissionsAdmin);
+router.delete('/submissions/:id', protect, authorize('admin'), deleteSubmissionAdmin);
 router.get('/course/:courseId/admin', protect, authorize('admin'), getCourseAssignmentsAdmin);
 router.post('/course/:courseId', protect, authorize('admin'), createAssignment);
 router.put('/:assignmentId', protect, authorize('admin'), updateAssignment);

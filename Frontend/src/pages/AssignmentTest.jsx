@@ -74,6 +74,39 @@ const AssignmentTest = () => {
     }
   }, [testStarted]);
 
+  // Handle browser back button and reload to prevent accidental exit
+  useEffect(() => {
+    if (!testStarted) return;
+
+    // Push state to trap the back button
+    window.history.pushState(null, '', window.location.href);
+
+    const handlePopState = (e) => {
+      const confirmLeave = window.confirm('Are you sure you want to leave? Your exam progress will be lost.');
+      if (confirmLeave) {
+        // If they want to leave, we remove listeners and navigate
+        window.removeEventListener('popstate', handlePopState);
+        navigate(`/courses/${courseId}`);
+      } else {
+        // Trap them again
+        window.history.pushState(null, '', window.location.href);
+      }
+    };
+
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [testStarted, courseId, navigate]);
+
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -125,6 +158,7 @@ const AssignmentTest = () => {
 
       // Navigate to results page
       navigate(`/courses/${courseId}/assignment/${assignmentId}/results`, {
+        replace: true,
         state: {
           score: res.data.data.submission.score ?? res.data.data.submission.percentageScore ?? 0,
           passed: res.data.data.submission.passed,
@@ -250,7 +284,15 @@ const AssignmentTest = () => {
         {/* Back Button */}
         <div className="mb-4">
           <button
-            onClick={() => navigate(`/courses/${courseId}`)}
+            onClick={() => {
+              if (testStarted) {
+                if (window.confirm('Are you sure you want to leave? Your exam progress will be lost.')) {
+                  navigate(`/courses/${courseId}`);
+                }
+              } else {
+                navigate(`/courses/${courseId}`);
+              }
+            }}
             className="flex items-center text-gray-600 hover:text-[#14B8A6] transition-colors font-medium"
           >
             <FiChevronLeft className="mr-1" size={20} />

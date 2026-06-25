@@ -19,7 +19,8 @@ import {
   FiSettings,
   FiUserX,
   FiGift,
-  FiMoreVertical
+  FiMoreVertical,
+  FiClipboard
 } from "react-icons/fi";
 
 // Primary color configuration
@@ -46,6 +47,7 @@ const adminMenuItems = [
       { path: "/admin/contests?section=users", label: "All Users" }
     ]
   },
+  { path: "/admin/exam-results", icon: FiClipboard, label: "Exam Results", section: "management" },
   { path: "/admin/schools", icon: FiSettings, label: "School Registrations", section: "management" },
   { path: "/admin/volunteers", icon: FiUsers, label: "Volunteers", section: "management" },
   { path: "/admin/teachers", icon: FiUsers, label: "Teacher Applications", section: "management" },

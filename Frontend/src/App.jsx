@@ -56,6 +56,7 @@ import ContestManagement from './pages/admin/ContestManagement';
 import CouponManagement from './pages/admin/CouponManagement';
 import ContestAdminDashboard from './pages/admin/ContestAdminDashboard';
 import AdminManagement from './pages/admin/AdminManagement';
+import ExamResults from './pages/admin/ExamResults';
 // Category management removed
 
 // Layout
@@ -261,6 +262,15 @@ function App() {
     element={
       <ProtectedRoute adminOnly>
         <SchoolRegistrationManagement />
+      </ProtectedRoute>
+    }
+  />
+
+  <Route 
+    path="/admin/exam-results"
+    element={
+      <ProtectedRoute adminOnly>
+        <ExamResults />
       </ProtectedRoute>
     }
   />

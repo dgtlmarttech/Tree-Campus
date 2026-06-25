@@ -409,6 +409,41 @@ export const getSubmission = async (req, res, next) => {
   }
 };
 
+// @desc    Get all assignment submissions across all courses (Admin only)
+// @route   GET /api/assignments/submissions/all
+// @access  Private/Admin
+export const getAllSubmissionsAdmin = async (req, res, next) => {
+  try {
+    const submissions = await AssignmentSubmission.find()
+      .populate('userId', 'name email phone')
+      .populate('courseId', 'title')
+      .populate('assignmentId', 'title')
+      .sort({ submittedAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: submissions
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Delete a specific assignment submission (Admin only)
+// @route   DELETE /api/assignments/submissions/:id
+// @access  Private/Admin
+export const deleteSubmissionAdmin = async (req, res, next) => {
+  try {
+    const submission = await AssignmentSubmission.findByIdAndDelete(req.params.id);
+    if (!submission) {
+      return res.status(404).json({ success: false, message: 'Submission not found' });
+    }
+    res.status(200).json({ success: true, message: 'Submission deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Update assignment (admin only)
 // @route   PUT /api/assignments/:assignmentId
 // @access  Private/Admin
