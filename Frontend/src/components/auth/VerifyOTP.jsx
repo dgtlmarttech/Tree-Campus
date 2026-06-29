@@ -65,13 +65,13 @@ const VerifyOTP = () => {
       setVerificationSuccess(true);
 
       setSuccessMessage(
-        mode === 'register'
-          ? 'Phone verified successfully! Redirecting to login...'
-          : 'OTP verified! Redirecting to reset password...'
+        mode === 'forgot-password'
+          ? 'OTP verified! Redirecting to reset password...'
+          : 'Phone verified successfully! Redirecting...'
       );
 
       setTimeout(() => {
-        if (mode === 'register') {
+        if (mode === 'register' || mode === 'verify') {
           // Check if this is a Google user completing profile
           const storedUser = localStorage.getItem('user');
           const token = localStorage.getItem('token');
@@ -82,6 +82,7 @@ const VerifyOTP = () => {
               const user = JSON.parse(storedUser);
               // Update user in localStorage with verified status
               user.isVerified = true;
+              user.isPhoneVerified = true;
               user.hasPhone = true;
               localStorage.setItem('user', JSON.stringify(user));
               
@@ -164,9 +165,9 @@ const VerifyOTP = () => {
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             {verificationSuccess ? (
-              mode === 'register'
-                ? 'Your phone number has been verified successfully'
-                : 'OTP verified! Redirecting to reset password...'
+              mode === 'forgot-password'
+                ? 'OTP verified! Redirecting to reset password...'
+                : 'Your phone number has been verified successfully'
             ) : (
               <div className="space-y-2">
                 <p>We've sent a 6-digit OTP to your phone</p>
