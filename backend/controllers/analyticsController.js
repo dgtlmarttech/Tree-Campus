@@ -85,10 +85,12 @@ export const getOverview = async (req, res) => {
 
 
     // --- Dynamic Course Stats (with accurate enrollment counts) ---
-    const courseStats = await Enrollment.aggregate([
+    const courseStats = await User.aggregate([
+      { $match: { role: 'student' } },
+      { $unwind: '$enrolledCourses' },
       {
         $group: {
-          _id: '$course',
+          _id: '$enrolledCourses.courseId',
           count: { $sum: 1 }
         }
       }
@@ -119,20 +121,31 @@ export const getOverview = async (req, res) => {
     const completedClasses = await LiveClass.countDocuments({ status: 'completed' });
 
     // --- Enrollments growth calculation ---
-    const enrollmentsThisMonth = await Enrollment.countDocuments({
-      enrolledAt: { $gte: startOfThisMonth }
-    });
-    const enrollmentsLastMonth = await Enrollment.countDocuments({
-      enrolledAt: { $gte: startOfLastMonth, $lt: startOfThisMonth }
-    });
+    const enrollThisMonthAgg = await User.aggregate([
+      { $match: { role: 'student' } },
+      { $unwind: '$enrolledCourses' },
+      { $match: { 'enrolledCourses.enrolledAt': { $gte: startOfThisMonth } } },
+      { $count: 'count' }
+    ]);
+    const enrollmentsThisMonth = enrollThisMonthAgg[0]?.count || 0;
+
+    const enrollLastMonthAgg = await User.aggregate([
+      { $match: { role: 'student' } },
+      { $unwind: '$enrolledCourses' },
+      { $match: { 'enrolledCourses.enrolledAt': { $gte: startOfLastMonth, $lt: startOfThisMonth } } },
+      { $count: 'count' }
+    ]);
+    const enrollmentsLastMonth = enrollLastMonthAgg[0]?.count || 0;
 
     // --- Peak Enrollment Month Calculation ---
-    const peakMonthlyEnrollment = await Enrollment.aggregate([
+    const peakMonthlyEnrollment = await User.aggregate([
+      { $match: { role: 'student' } },
+      { $unwind: '$enrolledCourses' },
       {
         $group: {
           _id: {
-            month: { $month: '$enrolledAt' },
-            year: { $year: '$enrolledAt' }
+            month: { $month: '$enrolledCourses.enrolledAt' },
+            year: { $year: '$enrolledCourses.enrolledAt' }
           },
           count: { $sum: 1 }
         }
