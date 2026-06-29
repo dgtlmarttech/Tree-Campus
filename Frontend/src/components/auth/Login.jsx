@@ -268,7 +268,8 @@ const Login = () => {
              state: { 
                email: parsedUser.email, 
                phone: parsedUser.phone, 
-               mode: 'register' 
+               mode: 'register',
+               triggerAutoResend: true
              } 
            });
            return;

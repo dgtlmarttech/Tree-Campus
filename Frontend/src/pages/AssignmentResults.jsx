@@ -114,10 +114,10 @@ const AssignmentResults = () => {
           {/* Buttons */}
           <div className="flex gap-3">
             <button
-              onClick={() => navigate(`/courses/${courseId}`)}
+              onClick={() => navigate('/exam')}
               className="flex-1 bg-[#115E59] text-white py-2.5 rounded-lg font-bold hover:bg-[#0F766E] transition text-sm shadow"
             >
-              Back to Course
+              Back to Exam
             </button>
             <button
               onClick={() => navigate('/dashboard')}

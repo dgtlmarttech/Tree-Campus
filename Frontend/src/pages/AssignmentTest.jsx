@@ -86,7 +86,7 @@ const AssignmentTest = () => {
       if (confirmLeave) {
         // If they want to leave, we remove listeners and navigate
         window.removeEventListener('popstate', handlePopState);
-        navigate(`/courses/${courseId}`);
+        navigate('/exam');
       } else {
         // Trap them again
         window.history.pushState(null, '', window.location.href);
@@ -211,10 +211,10 @@ const AssignmentTest = () => {
               You are not allowed to retake this assignment since you have already passed and earned the certificate.
             </p>
             <button
-              onClick={() => navigate(`/courses/${courseId}`)}
+              onClick={() => navigate('/exam')}
               className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-semibold"
             >
-              Back to Course
+              Back to Exam
             </button>
           </div>
         </div>
@@ -247,10 +247,10 @@ const AssignmentTest = () => {
               Unfortunately, you did not pass this assignment within the allowed attempts. Please contact your instructor for assistance or consider reviewing the course materials.
             </p>
             <button
-              onClick={() => navigate(`/courses/${courseId}`)}
+              onClick={() => navigate('/exam')}
               className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition font-semibold"
             >
-              Back to Course
+              Back to Exam
             </button>
           </div>
         </div>
@@ -264,10 +264,10 @@ const AssignmentTest = () => {
           <h2 className="text-2xl font-bold text-red-600 mb-4">⚠️ Not Eligible</h2>
           <p className="text-gray-700 mb-6">{eligibilityError}</p>
           <button
-            onClick={() => navigate(`/courses/${courseId}`)}
+            onClick={() => navigate('/exam')}
             className="bg-[#115E59] text-white px-6 py-2 rounded-lg hover:bg-[#0F766E] transition"
           >
-            Back to Course
+            Back to Exam
           </button>
         </div>
       </div>
@@ -287,16 +287,16 @@ const AssignmentTest = () => {
             onClick={() => {
               if (testStarted) {
                 if (window.confirm('Are you sure you want to leave? Your exam progress will be lost.')) {
-                  navigate(`/courses/${courseId}`);
+                  navigate('/exam');
                 }
               } else {
-                navigate(`/courses/${courseId}`);
+                navigate('/exam');
               }
             }}
             className="flex items-center text-gray-600 hover:text-[#14B8A6] transition-colors font-medium"
           >
             <FiChevronLeft className="mr-1" size={20} />
-            Back to Course
+            Back to Exam
           </button>
         </div>
 

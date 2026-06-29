@@ -31,7 +31,7 @@ const ProtectedRoute = ({ children, adminOnly = false, studentOnly = false }) =>
       return <Navigate to="/complete-profile" replace state={{ user }} />;
     } else {
       console.log('🟠 User phone not verified, redirecting to OTP verification');
-      return <Navigate to="/verify-otp" replace state={{ email: user.email, phone: user.phone, mode: 'verify' }} />;
+      return <Navigate to="/verify-otp" replace state={{ email: user.email, phone: user.phone, mode: 'verify', triggerAutoResend: true }} />;
     }
   }
 

@@ -157,7 +157,7 @@ const resendOTP = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    if (user.isVerified) {
+    if (user.isVerified && user.isPhoneVerified) {
       return res.status(400).json({ success: false, message: 'User already verified' });
     }
 
