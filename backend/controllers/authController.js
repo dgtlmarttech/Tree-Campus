@@ -331,7 +331,16 @@ const forgotPassword = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         errorCode: 'USER_NOT_FOUND',
-        message: 'Phone or email not match',
+        message: 'No account found with the provided email or phone number.',
+      });
+    }
+
+    // ✅ Strict Check: If email was provided, it must match the account's email
+    if (email && user.email !== email.toLowerCase()) {
+      return res.status(403).json({
+        success: false,
+        errorCode: 'EMAIL_MISMATCH',
+        message: 'The email address provided does not match the one registered to this account.',
       });
     }
 
