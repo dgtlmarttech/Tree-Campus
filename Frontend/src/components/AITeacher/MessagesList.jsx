@@ -8,6 +8,8 @@ export const MessagesList = () => {
   const stopMessage = useAITeacher((state) => state.stopMessage);
   const { currentMessage } = useAITeacher();
   const classroom = useAITeacher((state) => state.classroom);
+  const loading = useAITeacher((state) => state.loading);
+
 
   const container = useRef();
   
@@ -16,15 +18,16 @@ export const MessagesList = () => {
 
   useEffect(() => {
     if (currentMessage?.question) {
-      if (currentMessage.question === 'Welcome Greeting to the user'){
+      if (currentMessage.question.startsWith('Welcome Greeting to the user')){
         currentMessage.question = null;
       }
-      if (currentMessage.question !== '' || null){
+      if (currentMessage.question && currentMessage.question !== ''){
         setStoredQuestion(currentMessage.question);
       }
       
     }
   }, [currentMessage?.question]);
+
 
   return (
     <div
@@ -38,7 +41,20 @@ export const MessagesList = () => {
       {storedQuestion && (
         <h2 className="text-3xl font-bold text-white mb-4">{storedQuestion}</h2>
       )}
-      {latestMessage ? (
+      {loading ? (
+        <div className="h-full w-full grid place-content-center text-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex gap-2">
+              <div className="w-4 h-4 bg-white rounded-full animate-bounce"></div>
+              <div className="w-4 h-4 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-4 h-4 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+            </div>
+            <h2 className="text-4xl font-bold text-white/90 italic animate-pulse">
+              Spokee is typing...
+            </h2>
+          </div>
+        </div>
+      ) : latestMessage ? (
         <div className="flex-grow flex items-start gap-6 overflow-y-auto pr-4 pb-4">
           
           {/* Text Container - Centers short text, allows long text to scroll normally without top-clipping */}

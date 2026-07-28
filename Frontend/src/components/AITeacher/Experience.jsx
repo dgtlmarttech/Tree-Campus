@@ -1,5 +1,3 @@
-"use client"; 
-
 import { useAITeacher } from "../../hooks/useAITeacher";
 import {
   CameraControls,
@@ -19,6 +17,8 @@ import { MessagesList } from "./MessagesList";
 import { Teacher } from "./Teacher";
 import { TypingBox } from "./TypingBox";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
+
 
 const itemPlacement = {
   default: {
@@ -42,22 +42,36 @@ export const Experience = () => {
   const classroom = useAITeacher((state) => state.classroom);
   const [showTypingField, setShowTypingField] = useState(true);
   const [showPopup, setShowPopup] = useState(false);
+  const { user } = useAuth();
 
   const navigate = useNavigate();
   const [mounted, setMounted] = useState(false);
+  const greetingFired = useRef(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Personalized greeting on mount (fires once per session)
+  useEffect(() => {
+    if (mounted && !greetingFired.current) {
+      greetingFired.current = true;
+      const firstName = user?.firstName || user?.name?.split(' ')[0] || 'there';
+      const greetingPrompt = `Welcome Greeting to the user: Greet the student warmly. Their name is ${firstName}. Say "Hi ${firstName}, how are you? I'm your AI English teacher. I'm here to help you practice and improve your English. What would you like to learn or practice today?" Keep it warm, friendly and encouraging.`;
+      // Small delay to ensure the canvas/3D scene is initialized
+      const timer = setTimeout(() => {
+        useAITeacher.getState().markUserInteracted();
+        askAI(greetingPrompt);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [mounted, askAI, user]);
 
 const handleBack = () => {
     useAITeacher.getState().reset(); // Clear chat state for fresh start
     localStorage.removeItem("greetingSent");
     navigate("/dashboard");
   };
-
-  // Auto-greeting removed to prevent unsolicited AI responses.
-
 
   return (
     <div className="relative z-[0] w-full h-full"> 

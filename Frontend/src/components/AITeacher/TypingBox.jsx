@@ -1,5 +1,5 @@
 import 'regenerator-runtime/runtime'; // Needed for async/await in some environments
-import { useState, useRef, useEffect, useCallback,useLayoutEffect } from "react";
+import { useState, useRef, useEffect, useCallback, useLayoutEffect } from "react";
 import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
 
 // This import is external and assumed to resolve in your environment.
@@ -9,7 +9,7 @@ import { useAITeacher } from "../../hooks/useAITeacher";
 export const TypingBox = ({ showTypingField = true }) => {
   // Cache Buster: 2026-01-21 15:52
   // Destructuring askAI and loading from your external useAITeacher hook
-  const { askAI, loading, language } = useAITeacher(); 
+  const { askAI, loading, language, conversationMode, setConversationMode, resumeListeningTrigger } = useAITeacher();
 
   const [question, setQuestion] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -39,8 +39,8 @@ export const TypingBox = ({ showTypingField = true }) => {
       console.log("Mic quiet. Attempting Auto-Restart in 300ms...");
       timeout = setTimeout(() => {
         if (recordingRef.current && !listening) {
-          SpeechRecognition.startListening({ 
-            continuous: true, 
+          SpeechRecognition.startListening({
+            continuous: true,
             language: langRef.current,
             interimResults: true
           }).catch(err => console.error("Auto-restart failed:", err));
@@ -58,6 +58,33 @@ export const TypingBox = ({ showTypingField = true }) => {
       autoResize();
     }
   }, [transcript, isRecording, listening]); // Dependencies ensure this runs when transcript or recording state changes
+
+  // Silence Detection (Auto-Submit)
+  const silenceTimerRef = useRef(null);
+  useEffect(() => {
+    if (isRecording && transcript.trim() && conversationMode) {
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+
+      silenceTimerRef.current = setTimeout(() => {
+        console.log("2 seconds of silence detected. Auto-submitting...");
+        // Calling stopRecording will automatically submit the transcript
+        stopRecording();
+      }, 2000); // 2 seconds silence threshold
+    }
+
+    return () => {
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    };
+  }, [transcript, isRecording, conversationMode]);
+
+  // Auto-Resume Listening
+  useEffect(() => {
+    // Only trigger if a valid trigger timestamp exists, we are in conversation mode, and not already loading/recording
+    if (resumeListeningTrigger > 0 && conversationMode && !isRecording && !loading) {
+      console.log("AI finished speaking. Auto-resuming listening...");
+      startRecording();
+    }
+  }, [resumeListeningTrigger]);
 
   // Effect to handle Volume Meter
   useEffect(() => {
@@ -99,10 +126,18 @@ export const TypingBox = ({ showTypingField = true }) => {
   };
 
   const stopVolumeMeter = () => {
-    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-    if (audioContextRef.current) audioContextRef.current.close();
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      audioContextRef.current.close().catch(() => { });
+      audioContextRef.current = null;
+    }
+    analyserRef.current = null;
     setVolume(0);
   };
+
 
   // Effect for initial auto-resize and handling potential external changes to the question (e.g., via props)
   useEffect(() => {
@@ -132,7 +167,7 @@ export const TypingBox = ({ showTypingField = true }) => {
     // Start listening for speech
     try {
       console.log("Attempting to start listening with language:", recognitionLanguage);
-      
+
       // Clear any previous transcript and set recording state
       resetTranscript();
       setIsRecording(true);
@@ -140,12 +175,12 @@ export const TypingBox = ({ showTypingField = true }) => {
       // (Native listeners removed in favor of useEffect restarter)
 
 
-      await SpeechRecognition.startListening({ 
-        continuous: true, 
+      await SpeechRecognition.startListening({
+        continuous: true,
         language: recognitionLanguage,
         interimResults: true
       });
-      
+
     } catch (e) {
       console.error("Mic start error:", e);
       showFeedback("error", "Could not start microphone. Check permissions.");
@@ -158,52 +193,64 @@ export const TypingBox = ({ showTypingField = true }) => {
     console.log("Stopping recording. Current transcript:", transcript);
     setIsRecording(false); // Set recording state to false
     SpeechRecognition.stopListening(); // Stop the speech recognition service
-    
+
     // Use the transcript available at this moment
     const trimmedTranscript = transcript.trim();
     console.log("Final trimmed transcript to ask:", trimmedTranscript);
-    
+
     if (trimmedTranscript) {
       await ask(trimmedTranscript); // Call the ask function with the captured speech
     } else {
       showFeedback("info", "No speech detected. Please try again.");
+      // If conversation mode is on but nothing was said, let's turn it off so it doesn't get stuck
+      setConversationMode(false);
     }
-    
+
     setQuestion("");
     setTimeout(() => {
       resetTranscript();
     }, 100);
   };
 
+  const handleMicToggle = () => {
+    if (isRecording) {
+      setConversationMode(false);
+      stopRecording();
+    } else {
+      setConversationMode(true);
+      startRecording();
+    }
+  };
+
   // Function to dynamically resize the textarea based on its content
-function autoResize() {
-  const ta = textareaRef.current;
-  if (!ta) return;
+  function autoResize() {
+    const ta = textareaRef.current;
+    if (!ta) return;
 
-  // reset to auto so scrollHeight shrinks when text is deleted
-  ta.style.height = "auto";
+    // reset to auto so scrollHeight shrinks when text is deleted
+    ta.style.height = "auto";
 
-  // measure the full height of the content
-  const scrollH = ta.scrollHeight;
+    // measure the full height of the content
+    const scrollH = ta.scrollHeight;
 
-  // cap at 80px
-  const max = 80;
+    // cap at 80px
+    const max = 80;
 
-  ta.style.height = `${Math.min(scrollH, max)}px`;
-  ta.style.overflowY = scrollH > max ? "auto" : "hidden";
-}
-
-useLayoutEffect(() => {
-  autoResize();
-}, [question]);
-
-useLayoutEffect(() => {
-  if (isRecording) {
-    setQuestion(transcript);
-    // no need to call autoResize here separately,
-    // because the question update will trigger the above useLayoutEffect
+    ta.style.height = `${Math.min(scrollH, max)}px`;
+    ta.style.overflowY = scrollH > max ? "auto" : "hidden";
   }
-}, [transcript, isRecording]);
+
+  useLayoutEffect(() => {
+    autoResize();
+  }, [question]);
+
+  useLayoutEffect(() => {
+    if (isRecording) {
+      setQuestion(transcript);
+      // no need to call autoResize here separately,
+      // because the question update will trigger the above useLayoutEffect
+    }
+  }, [transcript, isRecording]);
 
 
   // Handler for textarea content changes
@@ -225,8 +272,8 @@ useLayoutEffect(() => {
   const ask = async (questionText) => {
     // Prevent sending empty questions or if already loading
     if (!questionText.trim() || loading) {
-        if (!questionText.trim()) showFeedback("error", "Please enter a message.");
-        return;
+      if (!questionText.trim()) showFeedback("error", "Please enter a message.");
+      return;
     }
     try {
       await askAI(questionText); // Call the AI teacher's askAI function
@@ -240,19 +287,19 @@ useLayoutEffect(() => {
 
   return (
     <div
-  onClick={() => textareaRef.current?.focus()}
-  className={`
+      onClick={() => textareaRef.current?.focus()}
+      className={`
     pointer-events-auto
     relative z-20 flex flex-col items-center justify-center
     bg-gradient-to-br from-gray-700/60 via-gray-800/60 to-gray-900/60
     p-4 md:p-6 backdrop-blur-md rounded-xl border border-gray-600/40 shadow-2xl
     transition-all duration-300 cursor-text
-    ${showTypingField 
-       ? "w-full max-w-3xl" 
-       : "w-30"} 
+    ${showTypingField
+          ? "w-full max-w-3xl"
+          : "w-30"} 
     mx-auto mb-4 md:mb-6 
   `}
->
+    >
       {/* Feedback Message Display */}
       {feedbackMessage.message && (
         <div
@@ -273,7 +320,7 @@ useLayoutEffect(() => {
             className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg transition-all duration-200
               ${listening ? "bg-red-500 hover:bg-red-600 animate-pulse-mic" : "bg-gray-700 hover:bg-gray-600"}
               focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 ${listening ? 'focus:ring-red-400' : 'focus:ring-gray-400'}`}
-            onClick={isRecording ? stopRecording : startRecording}
+            onClick={handleMicToggle}
             disabled={loading} // Disable if AI is loading
             aria-label={listening ? "Stop recording" : "Start recording"} // Accessibility label
           >
@@ -310,17 +357,17 @@ useLayoutEffect(() => {
           </button>
 
 
-{/* Auto-resizing Textarea */}
-<div className="relative flex-grow">
-  <textarea
-    ref={textareaRef}
-    value={question}
-    onChange={handleChange}
-    onInput={autoResize}
-    onKeyDown={handleKeyDown}
-    disabled={loading}
-    placeholder={listening ? "Listening…" : "Ask a question?"}
-    className="
+          {/* Auto-resizing Textarea */}
+          <div className="relative flex-grow">
+            <textarea
+              ref={textareaRef}
+              value={question}
+              onChange={handleChange}
+              onInput={autoResize}
+              onKeyDown={handleKeyDown}
+              disabled={loading}
+              placeholder={listening ? "Listening…" : "Ask a question?"}
+              className="
       box-border
       w-full text-[16px]
       bg-white/10 p-2 md:p-3 rounded-xl text-white placeholder-gray-300
@@ -328,25 +375,25 @@ useLayoutEffect(() => {
       resize-none overflow-hidden
       h-[46px] md:h-[48px] max-h-[80px]
     "
-  />
-  {listening && (
-    <div className="absolute left-0 -top-6 w-full text-center flex flex-col items-center">
-      {/* Audio Level Meter */}
-      <div className="w-24 h-1 bg-gray-600 rounded-full mb-1 overflow-hidden relative">
-        <div 
-          className="h-full bg-green-400 transition-all duration-75"
-          style={{ width: `${Math.min(volume * 2, 100)}%` }}
-        />
-        {volume < 5 && listening && (
-          <div className="absolute inset-0 bg-red-500/30 animate-pulse" />
-        )}
-      </div>
-      <p className="text-blue-300 text-[10px] md:text-xs truncate italic animate-pulse bg-gray-900/40 rounded-full px-2 py-1 inline-block">
-        {volume < 5 && listening && !transcript ? "⚠️ Whisper detected. Speak louder!" : (transcript ? `Hearing: "${transcript}"` : "Listening... Speak now")}
-      </p>
-    </div>
-  )}
-</div>
+            />
+            {listening && (
+              <div className="absolute left-0 -top-6 w-full text-center flex flex-col items-center">
+                {/* Audio Level Meter */}
+                <div className="w-24 h-1 bg-gray-600 rounded-full mb-1 overflow-hidden relative">
+                  <div
+                    className="h-full bg-green-400 transition-all duration-75"
+                    style={{ width: `${Math.min(volume * 2, 100)}%` }}
+                  />
+                  {volume < 5 && listening && (
+                    <div className="absolute inset-0 bg-red-500/30 animate-pulse" />
+                  )}
+                </div>
+                <p className="text-blue-300 text-[10px] md:text-xs truncate italic animate-pulse bg-gray-900/40 rounded-full px-2 py-1 inline-block">
+                  {volume < 5 && listening && !transcript ? "⚠️ Whisper detected. Speak louder!" : (transcript ? `Hearing: "${transcript}"` : "Listening... Speak now")}
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Ask Button */}
           <button
@@ -384,7 +431,7 @@ useLayoutEffect(() => {
             className={`!px-0 !py-0 w-16 h-16 rounded-full flex items-center justify-center text-white shadow-lg transition-all duration-300
               ${listening ? "bg-red-500 hover:bg-red-600 animate-pulse-mic" : "bg-blue-600 hover:bg-blue-700"}
               focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 ${listening ? 'focus:ring-red-400' : 'focus:ring-blue-400'}`}
-            onClick={isRecording ? stopRecording : startRecording} // Toggle recording
+            onClick={handleMicToggle}
             disabled={loading} // Disable if AI is loading
             aria-label={listening ? "Stop recording" : "Start recording"}
           >

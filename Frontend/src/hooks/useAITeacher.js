@@ -43,8 +43,33 @@ export const useAITeacher = create(
       loading: false,
       userInteracted: false,
       isLesson: false,
+      conversationMode: false,
+      resumeListeningTrigger: 0,
+      // Single global audio player reference to prevent overlapping/duplicate speech
+      _activeAudioPlayer: null,
+
+      setConversationMode: (val) => {
+        set(() => ({ conversationMode: val }));
+      },
+
+      triggerResumeListening: () => {
+        set(() => ({ resumeListeningTrigger: Date.now() }));
+      },
+
+      // Kill any currently playing audio immediately
+      _killActiveAudio: () => {
+        const current = get()._activeAudioPlayer;
+        if (current) {
+          current.onended = null; // Remove listener to prevent ghost triggers
+          current.pause();
+          current.src = '';      // Force browser to release the stream resource
+          set(() => ({ _activeAudioPlayer: null }));
+        }
+      },
 
       setLanguage: (language) => {
+        // Kill audio immediately when language changes to prevent echo
+        get()._killActiveAudio();
         set(() => ({ language }));
       },
 
@@ -94,6 +119,9 @@ export const useAITeacher = create(
       },
 
       playMessage: async (message) => {
+        // ── STEP 1: Kill any previous audio immediately to prevent overlap ──
+        get()._killActiveAudio();
+
         set(() => ({ currentMessage: message }));
 
         if (!get().userInteracted) {
@@ -101,42 +129,44 @@ export const useAITeacher = create(
           return;
         }
 
-        // If the audio player already exists, simply play/resume it!
+        // If the audio player already exists on this message, replay it
         if (message.audioPlayer) {
-          // If it reached the end, reset to 0 to replay
           if (message.audioPlayer.currentTime >= message.audioPlayer.duration) {
             message.audioPlayer.currentTime = 0;
           }
           
-          // Ensure onended exists in case it was lost
           message.audioPlayer.onended = () => {
-            set(() => ({ currentMessage: null }));
+            set(() => ({ currentMessage: null, _activeAudioPlayer: null }));
+            if (get().conversationMode) get().triggerResumeListening();
           };
 
+          set(() => ({ _activeAudioPlayer: message.audioPlayer }));
           message.audioPlayer.play().catch(e => console.error("Resume failed:", e));
           return;
         }
 
-        // If we have audio data from the single API call, play it
-        if (message.audio && !get().isLesson) {
+        // If we have text to speak, stream it instantly from the new endpoint!
+        if (message.audio_text && !get().isLesson) {
           try {
-             // Convert base64 to binary ArrayBuffer to a Blob URL
-             const binaryString = window.atob(message.audio);
-             const len = binaryString.length;
-             const bytes = new Uint8Array(len);
-             for (let i = 0; i < len; i++) {
-                 bytes[i] = binaryString.charCodeAt(i);
-             }
-             const audioBlob = new Blob([bytes.buffer], { type: 'audio/mp3' });
-             const audioUrl = URL.createObjectURL(audioBlob);
+             const baseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/api$/, "");
+             const token = localStorage.getItem('token');
+             const language = get().language;
+             
+             // Construct the streaming URL with the token in the query string
+             const streamUrl = `${baseUrl}/api/ai/teacher/stream-audio?text=${encodeURIComponent(message.audio_text)}&language=${encodeURIComponent(language)}&token=${encodeURIComponent(token)}`;
 
-             const audioPlayer = new Audio(audioUrl);
+             const audioPlayer = new Audio(streamUrl);
 
              audioPlayer.onended = () => {
-               set(() => ({ currentMessage: null }));
+               set(() => ({ currentMessage: null, _activeAudioPlayer: null }));
+               if (get().conversationMode) get().triggerResumeListening();
              };
 
+             // Register as the single active player BEFORE play() to prevent any race
              message.audioPlayer = audioPlayer;
+             set(() => ({ _activeAudioPlayer: audioPlayer }));
+             
+             // Start playback instantly (stream will buffer and play automatically)
              audioPlayer.play().catch(e => console.error("Audio playback failed strictly during .play():", e));
 
              set(() => ({
@@ -147,29 +177,33 @@ export const useAITeacher = create(
              }));
 
           } catch (error) {
-             console.error("Error setting up audio message playback:", error);
+             console.error("Error setting up audio stream:", error);
              set(() => ({ loading: false }));
           }
         } else if (!get().isLesson) {
-             // Fallback or error state if no audio was returned
-             console.warn("No audio data found in message.");
+             console.warn("No audio text found in message.");
              set(() => ({ loading: false }));
         }
       },
 
       stopMessage: (message) => {
+        // Stop via the global killer to ensure the stream is fully released
+        get()._killActiveAudio();
         if (message && message.audioPlayer) {
           message.audioPlayer.pause();
-          // DO NOT set currentTime = 0 here, so we can resume later!
+          message.audioPlayer.src = '';
         }
         set(() => ({ currentMessage: null }));
       },
 
       reset: () => {
+        // Kill any active audio on reset
+        get()._killActiveAudio();
         set({
           messages: [],
           currentMessage: null,
           loading: false,
+          conversationMode: false,
         });
       },
     }),
