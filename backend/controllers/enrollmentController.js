@@ -51,7 +51,7 @@ export const enrollInCourse = async (req, res) => {
       });
     }
 
-    // Validate course exists
+    // Validate course exist s 
     const course = await Course.findById(courseId);
     if (!course) {
       return res.status(404).json({
