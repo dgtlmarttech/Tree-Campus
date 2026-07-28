@@ -8,6 +8,7 @@ import {
 } from '../controllers/aiController.js';
 import { askTeacher } from '../controllers/teacherController.js';
 import { getTTS } from '../controllers/ttsController.js';
+import { streamAudio } from '../controllers/ttsStreamController.js';
 import { protect } from '../middleware/auth.js';
 import { body } from 'express-validator';
 import { validate } from '../middleware/validate.js';
@@ -25,5 +26,6 @@ router.delete('/conversation/:id', protect, deleteConversation);
 // 3D Teacher Routes
 router.post('/teacher/ask', protect, askTeacher);
 router.get('/teacher/tts', protect, getTTS);
+router.get('/teacher/stream-audio', protect, streamAudio);
 
 export default router;
