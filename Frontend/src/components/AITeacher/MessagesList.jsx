@@ -12,30 +12,29 @@ export const MessagesList = () => {
 
 
   const container = useRef();
-  
+
   const latestMessage = messages.length > 0 ? messages[messages.length - 1] : null;
   const [storedQuestion, setStoredQuestion] = useState(null);
 
   useEffect(() => {
     if (currentMessage?.question) {
-      if (currentMessage.question.startsWith('Welcome Greeting to the user')){
+      if (currentMessage.question.startsWith('Welcome Greeting to the user')) {
         currentMessage.question = null;
       }
-      if (currentMessage.question && currentMessage.question !== ''){
+      if (currentMessage.question && currentMessage.question !== '') {
         setStoredQuestion(currentMessage.question);
       }
-      
+
     }
   }, [currentMessage?.question]);
 
 
   return (
     <div
-      className={`${
-        classroom === "default"
+      className={`${classroom === "default"
           ? "w-[1288px] h-[580px]"
           : "w-[2528px] h-[750px]"
-      } p-8 pt-12 flex flex-col space-y-8 bg-transparent`}
+        } p-8 pt-12 flex flex-col space-y-8 bg-transparent`}
       ref={container}
     >
       {storedQuestion && (
@@ -56,7 +55,7 @@ export const MessagesList = () => {
         </div>
       ) : latestMessage ? (
         <div className="flex-grow flex items-start gap-6 overflow-y-auto pr-4 pb-4">
-          
+
           {/* Text Container - Centers short text, allows long text to scroll normally without top-clipping */}
           <div className="flex-grow flex flex-col justify-center min-h-full">
             <p
@@ -67,7 +66,7 @@ export const MessagesList = () => {
             />
           </div>
 
-          {/* Play/Pause Button - Sticky so it stays visible while scrolling long text */}
+          {/* Play/Pause Button - Sticky so it stays visible while scrolling long text  t*/}
           <div className="flex-shrink-0 sticky top-4 mt-4 z-10">
             {currentMessage === latestMessage ? (
               <button
