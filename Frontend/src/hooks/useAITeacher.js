@@ -31,6 +31,33 @@ async function fetchAIResponse(question, language, history) {
   }
 }
 
+// Course Learning Mode: context-restricted AI endpoint
+async function fetchCourseLearningAIResponse(payload) {
+  const baseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/api$/, "");
+  const url = `${baseUrl}/api/ai/course-learning/ask`;
+  const token = localStorage.getItem('token');
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch course learning AI response: ${res.status}`);
+    }
+
+    return await res.json();
+  } catch (err) {
+    console.error("Error fetching course learning AI response:", err);
+    throw err;
+  }
+}
+
 export const useAITeacher = create(
   persist(
     (set, get) => ({
@@ -99,8 +126,8 @@ export const useAITeacher = create(
             question,
             answer: data.text,
             audio_text: data.audio_text,
-            audio: data.audio, // Base64 audio from server
-            visemes: data.visemes, // Visemes from server
+            audio: data.audio,
+            visemes: data.visemes,
             id: messages.length,
             speech,
           };
@@ -118,16 +145,62 @@ export const useAITeacher = create(
         }
       },
 
+      // ── Course Learning Mode ──────────────────────────────────────────────
+      // Uses the context-restricted course learning AI endpoint.
+      askAIWithContext: async (payload, onLessonComplete) => {
+        const { speech, messages } = get();
+        if (!payload?.question) return;
+
+        const history = messages.flatMap(m => [
+          { role: 'user', content: m.question },
+          { role: 'assistant', content: m.answer }
+        ]);
+
+        set(() => ({ loading: true }));
+        try {
+          const data = await fetchCourseLearningAIResponse({
+            ...payload,
+            history: [...history, ...(payload.history || [])].slice(-8),
+          });
+
+          const message = {
+            question: payload.question,
+            answer: data.text,
+            audio_text: data.audio_text,
+            audio: data.audio,
+            visemes: data.visemes,
+            id: messages.length,
+            speech,
+          };
+
+          set((state) => ({
+            currentMessage: message,
+            messages: [...state.messages, message],
+            loading: false,
+          }));
+
+          get().playMessage(message);
+
+          if (data.lessonComplete && typeof onLessonComplete === 'function') {
+            onLessonComplete();
+          }
+
+          return data;
+        } catch (error) {
+          console.error("Error in askAIWithContext:", error);
+          set(() => ({ loading: false }));
+        }
+      },
+
+
       playMessage: async (message) => {
         // ── STEP 1: Kill any previous audio immediately to prevent overlap ──
         get()._killActiveAudio();
 
         set(() => ({ currentMessage: message }));
 
-        if (!get().userInteracted) {
-          console.warn("Audio playback is blocked until user interaction.");
-          return;
-        }
+        // Ensure user interaction is marked (may be needed after page reload)
+        get().markUserInteracted();
 
         // If the audio player already exists on this message, replay it
         if (message.audioPlayer) {
@@ -145,8 +218,32 @@ export const useAITeacher = create(
           return;
         }
 
-        // If we have text to speak, stream it instantly from the new endpoint!
-        if (message.audio_text && !get().isLesson) {
+        // If the backend provided base64 audio (for long Course Mode responses)
+        if (message.audio) {
+           try {
+             const audioPlayer = new Audio("data:audio/mp3;base64," + message.audio);
+             audioPlayer.onended = () => {
+               set(() => ({ currentMessage: null, _activeAudioPlayer: null }));
+               if (get().conversationMode) get().triggerResumeListening();
+             };
+             message.audioPlayer = audioPlayer;
+             set(() => ({ _activeAudioPlayer: audioPlayer }));
+             
+             audioPlayer.play().catch(e => console.error("Base64 Audio playback failed:", e));
+
+             set(() => ({
+               messages: get().messages.map((m) =>
+                 m.id === message.id ? message : m
+               ),
+               loading: false,
+             }));
+           } catch (err) {
+             console.error("Error playing base64 audio:", err);
+             set(() => ({ loading: false }));
+           }
+        }
+        // Fallback: If we only have text to speak, stream it from the endpoint
+        else if (message.audio_text) {
           try {
              const baseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/api$/, "");
              const token = localStorage.getItem('token');
@@ -180,8 +277,8 @@ export const useAITeacher = create(
              console.error("Error setting up audio stream:", error);
              set(() => ({ loading: false }));
           }
-        } else if (!get().isLesson) {
-             console.warn("No audio text found in message.");
+        } else {
+             console.warn("No audio or audio_text found to play.");
              set(() => ({ loading: false }));
         }
       },
@@ -193,7 +290,8 @@ export const useAITeacher = create(
           message.audioPlayer.pause();
           message.audioPlayer.src = '';
         }
-        set(() => ({ currentMessage: null }));
+        // Also clear loading so "Preparing lesson..." indicator disappears
+        set(() => ({ currentMessage: null, loading: false }));
       },
 
       reset: () => {
@@ -212,7 +310,8 @@ export const useAITeacher = create(
       partialize: (state) => ({ 
         messages: state.messages, 
         language: state.language,
-        classroom: state.classroom 
+        classroom: state.classroom,
+        userInteracted: state.userInteracted,
       }),
     }
   )

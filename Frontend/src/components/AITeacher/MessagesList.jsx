@@ -18,13 +18,22 @@ export const MessagesList = () => {
 
   useEffect(() => {
     if (currentMessage?.question) {
-      if (currentMessage.question.startsWith('Welcome Greeting to the user')) {
+      // Hide system/auto messages — never show them on the board
+      const hiddenPrefixes = [
+        'Welcome Greeting to the user',
+        'Please start teaching',
+        '__',
+        '[SYSTEM',
+      ];
+      const isHidden = hiddenPrefixes.some(prefix =>
+        currentMessage.question.startsWith(prefix)
+      );
+      if (isHidden) {
         currentMessage.question = null;
       }
       if (currentMessage.question && currentMessage.question !== '') {
         setStoredQuestion(currentMessage.question);
       }
-
     }
   }, [currentMessage?.question]);
 
@@ -32,31 +41,17 @@ export const MessagesList = () => {
   return (
     <div
       className={`${classroom === "default"
-          ? "w-[1288px] h-[580px]"
-          : "w-[2528px] h-[750px]"
+        ? "w-[1288px] h-[580px]"
+        : "w-[2528px] h-[750px]"
         } p-8 pt-12 flex flex-col space-y-8 bg-transparent`}
       ref={container}
     >
       {storedQuestion && (
         <h2 className="text-3xl font-bold text-white mb-4">{storedQuestion}</h2>
       )}
-      {loading ? (
-        <div className="h-full w-full grid place-content-center text-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="flex gap-2">
-              <div className="w-4 h-4 bg-white rounded-full animate-bounce"></div>
-              <div className="w-4 h-4 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-              <div className="w-4 h-4 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-            </div>
-            <h2 className="text-4xl font-bold text-white/90 italic animate-pulse">
-              Spokee is typing...
-            </h2>
-          </div>
-        </div>
-      ) : latestMessage ? (
-        <div className="flex-grow flex items-start gap-6 overflow-y-auto pr-4 pb-4">
-
-          {/* Text Container - Centers short text, allows long text to scroll normally without top-clipping */}
+      {/* Board Text Container */}
+      {latestMessage ? (
+        <div className="flex-grow flex items-start gap-6 overflow-y-auto pr-4 pb-4 relative">
           <div className="flex-grow flex flex-col justify-center min-h-full">
             <p
               className="text-4xl px-4 py-4 rounded-sm font-bold text-stone-50 font-noto-sans-devanagari"
@@ -64,7 +59,22 @@ export const MessagesList = () => {
                 __html: marked.parse(latestMessage.answer)
               }}
             />
+            
+            {/* Small loading indicator at bottom if fetching in background */}
+            {loading && (
+              <div className="mt-8 flex items-center gap-3 px-4 opacity-70">
+                <div className="flex gap-1.5">
+                  <div className="w-2.5 h-2.5 bg-teal-400 rounded-full animate-bounce"></div>
+                  <div className="w-2.5 h-2.5 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-2.5 h-2.5 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                </div>
+                <span className="text-xl font-semibold text-teal-300 italic animate-pulse">
+                  Preparing lesson...
+                </span>
+              </div>
+            )}
           </div>
+
 
           {/* Play/Pause Button - Sticky so it stays visible while scrolling long text  t*/}
           <div className="flex-shrink-0 sticky top-4 mt-4 z-10">

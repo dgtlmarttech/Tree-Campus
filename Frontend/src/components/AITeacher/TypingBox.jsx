@@ -5,11 +5,13 @@ import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognitio
 // This import is external and assumed to resolve in your environment.
 // No modifications are made to this import path based on your request.
 import { useAITeacher } from "../../hooks/useAITeacher";
+import { useCourseLearning } from "../../hooks/useCourseLearning";
 
 export const TypingBox = ({ showTypingField = true }) => {
   // Cache Buster: 2026-01-21 15:52
   // Destructuring askAI and loading from your external useAITeacher hook
   const { askAI, loading, language, conversationMode, setConversationMode, resumeListeningTrigger } = useAITeacher();
+  const isCourseMode = useCourseLearning(state => state.isCourseMode);
 
   const [question, setQuestion] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -284,6 +286,10 @@ export const TypingBox = ({ showTypingField = true }) => {
       showFeedback("error", "Failed to get AI response. Please try again."); // Show error feedback
     }
   };
+
+  if (isCourseMode) {
+    return null;
+  }
 
   return (
     <div

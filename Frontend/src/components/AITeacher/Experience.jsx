@@ -18,6 +18,7 @@ import { Teacher } from "./Teacher";
 import { TypingBox } from "./TypingBox";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { useCourseLearning } from "../../hooks/useCourseLearning";
 
 
 const itemPlacement = {
@@ -43,6 +44,9 @@ export const Experience = () => {
   const [showTypingField, setShowTypingField] = useState(true);
   const [showPopup, setShowPopup] = useState(false);
   const { user } = useAuth();
+  const courseProgress = useCourseLearning((state) => state.progress);
+  const courseStructure = useCourseLearning((state) => state.courseStructure);
+  const selectedCourseId = useCourseLearning((state) => state.selectedCourseId);
 
   const navigate = useNavigate();
   const [mounted, setMounted] = useState(false);
@@ -53,37 +57,75 @@ export const Experience = () => {
   }, []);
 
   // Personalized greeting on mount (fires once per session)
+  // Only fires in pure conversational mode (user not enrolled in any course).
+  // If user is enrolled, AITeacherPage auto-opens Course Mode and
+  // CourseLearningPanel handles the correct day greeting.
   useEffect(() => {
-    if (mounted && !greetingFired.current) {
+    if (mounted && !greetingFired.current && !selectedCourseId) {
       greetingFired.current = true;
       const firstName = user?.firstName || user?.name?.split(' ')[0] || 'there';
-      const greetingPrompt = `Welcome Greeting to the user: Greet the student warmly. Their name is ${firstName}. Say "Hi ${firstName}, how are you? I'm your AI English teacher. I'm here to help you practice and improve your English. What would you like to learn or practice today?" Keep it warm, friendly and encouraging.`;
-      // Small delay to ensure the canvas/3D scene is initialized
+
       const timer = setTimeout(() => {
         useAITeacher.getState().markUserInteracted();
-        askAI(greetingPrompt);
-      }, 1500);
+
+        // Check if user has completed Day 1 already
+        const day1SectionId = courseStructure?.days?.[0]?.sectionId;
+        const completedIds = courseProgress?.completedTheorySectionIds || [];
+        const day1Done = day1SectionId && completedIds.some(
+          id => id.toString() === day1SectionId.toString()
+        );
+
+        let greetingText, greetingAnswer;
+        if (day1Done) {
+          // Generic greeting for users who have already started their journey
+          greetingText = `Hi ${firstName}! Welcome back. I am your personal AI English Teacher. You can ask me anything about English, or open Course Mode to continue your lessons.`;
+          greetingAnswer = `Hi ${firstName}! 👋\n\nWelcome back.\n\nI'm your personal AI English Teacher.\n\nYou can:\n\n• Ask me any English question\n• Practice speaking with me\n• Open **Course Mode** to continue your lesson journey\n\nHow can I help you today? 🚀`;
+        } else {
+          // Day 1 greeting for new users or users who haven't started yet
+          greetingText = `Hi ${firstName}! Welcome back. Today is Day 1 of the English Speaking Course. Today we'll learn Basic Greetings, Self Introduction, and Everyday English Expressions. Let's begin!`;
+          greetingAnswer = `Hi ${firstName}! 👋\n\nWelcome back.\n\nToday is your **Day 1** of the English Speaking Course.\n\nToday we'll learn:\n\n• Basic Greetings\n• Self Introduction\n• Everyday English Expressions\n\nI'll first teach today's theory using simple explanations.\n\nLet's begin! 🚀`;
+        }
+
+        const greetingMessage = {
+          question: '__greeting__',
+          answer: greetingAnswer,
+          audio: null,
+          audio_text: greetingText,
+          visemes: [],
+          lipsync: null,
+        };
+        useAITeacher.setState(() => ({
+          messages: [greetingMessage],
+          currentMessage: null,
+        }));
+        useAITeacher.getState().playMessage(greetingMessage);
+      }, 800);
       return () => clearTimeout(timer);
     }
-  }, [mounted, askAI, user]);
+  }, [mounted, user, courseProgress, courseStructure]);
 
-const handleBack = () => {
+  const handleBack = () => {
     useAITeacher.getState().reset(); // Clear chat state for fresh start
     localStorage.removeItem("greetingSent");
     navigate("/dashboard");
   };
 
   return (
-    <div className="relative z-[0] w-full h-full"> 
+    <div className="relative z-[0] w-full h-full">
       <div className="z-10 absolute bottom-4 md:bottom-10 w-full flex justify-center pointer-events-none px-4">
+        {/* TypingBox commented out as requested
         <TypingBox
           showTypingField={showTypingField}
         />
+        */}
       </div>
 
       {/* Settings & Language Controls */}
       <div className="absolute top-8 right-4 md:right-8 flex flex-col items-end gap-4 z-[40]">
-        
+
+        {/* Course Mode Toggle Button */}
+        <CourseModeToggle />
+
         {/* Settings Toggle Button */}
         <button
           className="p-2 md:p-3 bg-gray-800/90 text-white rounded-xl shadow-2xl backdrop-blur-md border border-white/20 hover:bg-gray-700 hover:scale-110 active:scale-95 transition-all duration-300 pointer-events-auto"
@@ -100,74 +142,71 @@ const handleBack = () => {
         <BoardSettings />
       </div>
 
-{/* Popup Modal */}
-{showPopup && (
-  <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-lg z-[50]">
-    <div
-      className="relative bg-white/10 backdrop-blur-2xl p-8 md:p-10 rounded-3xl shadow-2xl 
+      {/* Popup Modal */}
+      {showPopup && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-lg z-[50]">
+          <div
+            className="relative bg-white/10 backdrop-blur-2xl p-8 md:p-10 rounded-3xl shadow-2xl 
       w-96 md:w-[28rem] text-center border border-white/20"
-    >
-       {/* Close Button */}
-       <button
-        className="absolute top-3 right-3 text-white text-2xl font-bold 
+          >
+            {/* Close Button */}
+            <button
+              className="absolute top-3 right-3 text-white text-2xl font-bold 
         hover:text-red-500 transition-colors duration-300 
         bg-transparent p-0 border-none cursor-pointer hover:bg-transparent"
-        onClick={() => setShowPopup(false)}
-      >
-        ✖
-      </button>
+              onClick={() => setShowPopup(false)}
+            >
+              ✖
+            </button>
 
-      {/* Toggle Section */}
-      <div className="flex items-center justify-between gap-4 mb-6 border-b-[5px] border-blue-500 pb-3">
-        <span className="text-lg font-semibold text-white">Enable Input Field</span>
-        <label className="relative inline-flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            className="sr-only"
-            checked={showTypingField}
-            onChange={() => setShowTypingField(!showTypingField)}
-          />
-          <div
-            className={`w-14 h-8 rounded-full transition-all duration-300 ${
-              showTypingField ? "bg-green-400" : "bg-gray-500"
-            }`}
-          >
-            <div
-              className={`absolute top-0.5 left-0.5 w-7 h-7 bg-white rounded-full shadow-md transition-transform duration-300 ${
-                showTypingField ? "translate-x-6" : "translate-x-0"
-              }`}
-            ></div>
-          </div>
-          <span
-            className={`ml-2 text-sm font-semibold ${
-              showTypingField ? "text-green-400" : "text-gray-400"
-            }`}
-          >
-            {showTypingField ? "On" : "Off"}
-          </span>
-        </label>
-      </div>
+            {/* Toggle Section */}
+            <div className="flex items-center justify-between gap-4 mb-6 border-b-[5px] border-blue-500 pb-3">
+              <span className="text-lg font-semibold text-white">Enable Input Field</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={showTypingField}
+                  onChange={() => setShowTypingField(!showTypingField)}
+                />
+                <div
+                  className={`w-14 h-8 rounded-full transition-all duration-300 ${showTypingField ? "bg-green-400" : "bg-gray-500"
+                    }`}
+                >
+                  <div
+                    className={`absolute top-0.5 left-0.5 w-7 h-7 bg-white rounded-full shadow-md transition-transform duration-300 ${showTypingField ? "translate-x-6" : "translate-x-0"
+                      }`}
+                  ></div>
+                </div>
+                <span
+                  className={`ml-2 text-sm font-semibold ${showTypingField ? "text-green-400" : "text-gray-400"
+                    }`}
+                >
+                  {showTypingField ? "On" : "Off"}
+                </span>
+              </label>
+            </div>
 
-      {/* Exit Button */}
-      <button
-        className="bg-red-500 text-white px-4 py-3 rounded-lg hover:bg-red-700 
+            {/* Exit Button */}
+            <button
+              className="bg-red-500 text-white px-4 py-3 rounded-lg hover:bg-red-700 
         transition-all duration-300 w-full shadow-md text-lg"
-        onClick={handleBack}
-      >
-        Exit
-      </button>
-    </div>
-  </div>
-)}
+              onClick={handleBack}
+            >
+              Exit
+            </button>
+          </div>
+        </div>
+      )}
 
 
 
 
 
-      
+
       {/* Show the Leva panel here */}
       <Leva hidden />
-      
+
       {/* Only render Loader on client to avoid hydration mismatch */}
       {mounted && <Loader />}
       <Canvas
@@ -187,10 +226,10 @@ const handleBack = () => {
             >
               {!showPopup && (
                 <>
-                <MessagesList />
+                  <MessagesList />
                 </>
               )}
-              
+
             </Html>
             <Environment preset="sunset" />
             <ambientLight intensity={0.8} color="pink" />
@@ -212,6 +251,32 @@ const handleBack = () => {
   );
 };
 
+// ── Course Mode Toggle button (shown in the top-right controls column) ──────
+const CourseModeToggle = () => {
+  const { isCourseMode, toggleCourseMode } = useCourseLearning();
+  return (
+    <button
+      onClick={toggleCourseMode}
+      title={isCourseMode ? 'Exit Course Mode' : 'Course Learning Mode'}
+      className={`
+        p-2 md:p-3 rounded-xl shadow-2xl backdrop-blur-md border
+        transition-all duration-300 pointer-events-auto
+        hover:scale-110 active:scale-95
+        flex items-center gap-1.5
+        ${isCourseMode
+          ? 'bg-teal-600/90 text-white border-teal-400/60 shadow-teal-500/30'
+          : 'bg-gray-800/90 text-white border-white/20 hover:bg-gray-700'
+        }
+      `}
+    >
+      <span className="text-base md:text-lg leading-none">📚</span>
+      {isCourseMode && (
+        <span className="text-xs font-semibold hidden md:inline">Course</span>
+      )}
+    </button>
+  );
+};
+
 const CAMERA_POSITIONS = {
   default: [0, 6.123233995736766e-21, 0.0001],
   loading: [
@@ -227,10 +292,10 @@ const CAMERA_ZOOMS = {
   loading: 1.8,
   speaking: 2.1204819420055387,
 
-   // Mobile Default Zoom
-   mobileDefault: 0.6239784084873344,
+  // Mobile Default Zoom
+  mobileDefault: 0.6239784084873344,
 };
- 
+
 const CameraManager = () => {
   const controls = useRef();
   const loading = useAITeacher((state) => state.loading);
@@ -255,7 +320,7 @@ const CameraManager = () => {
     if (controls.current) {
       // Adjust camera position for mobile screens
       if (isMobile) {
-        controls.current.camera.position.set(-4, 3, 5); 
+        controls.current.camera.position.set(-4, 3, 5);
         controls.current?.setPosition(...CAMERA_POSITIONS.mobileDefault, true);
         controls.current.camera.fov = 60; // Wider FOV for mobile
         // Set zoom levels for mobile
