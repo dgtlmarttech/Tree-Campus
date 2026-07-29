@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import ChatHistory from '../models/ChatHistory.js';
+import fetch from 'node-fetch';
 
 const openai = new OpenAI({
     apiKey: process.env["OPENAI_API_KEY"],
@@ -150,12 +151,49 @@ export const askTeacher = async (req, res) => {
             { upsert: true, new: true }
         ).catch(err => console.error("History storage error:", err));
 
-        // Return INSTANTLY without waiting for audio generation!
+        // Generate audio via Sarvam TTS
+        let audioBase64 = null;
+        try {
+            const sarvamApiKey = process.env.SARVAM_API_KEY;
+            if (sarvamApiKey && response.ReplyForUserAudio) {
+                let targetLanguageCode = 'en-IN';
+                let speaker = 'suhani';
+                if (language === 'Hindi' || language === 'English-Hindi') {
+                    targetLanguageCode = 'hi-IN';
+                    speaker = 'pooja';
+                }
+                const audioText = response.ReplyForUserAudio.substring(0, 1000);
+                const sarvamResponse = await fetch('https://api.sarvam.ai/text-to-speech/stream', {
+                    method: 'POST',
+                    headers: {
+                        'api-subscription-key': sarvamApiKey,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: audioText,
+                        target_language_code: targetLanguageCode,
+                        speaker,
+                        model: 'bulbul:v3',
+                        pace: 0.95,
+                    }),
+                });
+                if (sarvamResponse.ok) {
+                    const arrayBuffer = await sarvamResponse.arrayBuffer();
+                    audioBase64 = Buffer.from(arrayBuffer).toString('base64');
+                } else {
+                    console.error('Sarvam TTS error:', await sarvamResponse.text());
+                }
+            }
+        } catch (ttsErr) {
+            console.error('Failed to generate Sarvam TTS audio:', ttsErr.message);
+        }
+
+        // Return response with audio
         res.json({
             text: response.ReplyForUser,
             audio_text: response.ReplyForUserAudio,
-            audio: null,            // We no longer send base64 audio!
-            visemes: visemesData    // For 3D avatar lipsync
+            audio: audioBase64,
+            visemes: visemesData
         });
 
     } catch (error) {

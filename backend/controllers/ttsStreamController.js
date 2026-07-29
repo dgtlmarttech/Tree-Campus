@@ -9,9 +9,8 @@ export const streamAudio = async (req, res) => {
             return res.status(400).json({ error: 'Text query parameter is required' });
         }
 
-        // Set up streaming response headers
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('Transfer-Encoding', 'chunked');
+        // We will set headers after fetching the audio to include Content-Length
+        // which prevents browser Range request issues with HTML5 Audio
 
         // Select voice / speaker and target language code based on selected language
         let targetLanguageCode = 'en-IN';
@@ -46,8 +45,13 @@ export const streamAudio = async (req, res) => {
             throw new Error(`Sarvam AI returned ${response.status}: ${errorText}`);
         }
 
-        // Pipe the response stream directly to Express response
-        response.body.pipe(res);
+        // Collect the stream into a buffer to send as a complete file
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Content-Length', buffer.length);
+        res.status(200).send(buffer);
 
     } catch (error) {
         console.error("❌ Streaming Audio Error (Sarvam AI):", error.message);

@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import fetch from 'node-fetch';
 
 export const getTTS = async (req, res) => {
     const openai = new OpenAI({
@@ -19,6 +20,7 @@ export const getTTS = async (req, res) => {
     console.log(`TTS Request (Google Cloud): voice=${voiceName}, textLength=${text.length}`);
 
     try {
+        /* --- COMMENTED OUT GOOGLE CLOUD TTS ---
         const apiKey = process.env.GOOGLE_CLOUD_API_KEY;
         if (!apiKey) throw new Error("GOOGLE_CLOUD_API_KEY is missing");
 
@@ -46,6 +48,40 @@ export const getTTS = async (req, res) => {
 
         const ttsData = await ttsResponse.json();
         const buffer = Buffer.from(ttsData.audioContent, 'base64');
+        -------------------------------------- */
+
+        // Generate audio via Sarvam TTS
+        const sarvamApiKey = process.env.SARVAM_API_KEY;
+        if (!sarvamApiKey) throw new Error("SARVAM_API_KEY is missing");
+
+        const audioText = text.substring(0, 1000); // Cap at 1000 chars
+
+        // Determine speaker based on teacher name if needed, else default to 'suhani'
+        let targetLanguageCode = 'en-IN';
+        let speaker = 'suhani';
+
+        const sarvamResponse = await fetch('https://api.sarvam.ai/text-to-speech/stream', {
+            method: 'POST',
+            headers: {
+                'api-subscription-key': sarvamApiKey,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                text: audioText,
+                target_language_code: targetLanguageCode,
+                speaker,
+                model: 'bulbul:v3',
+                pace: 0.95,
+            }),
+        });
+
+        if (!sarvamResponse.ok) {
+            const errorText = await sarvamResponse.text();
+            throw new Error(`Sarvam TTS error: ${sarvamResponse.status} ${errorText}`);
+        }
+
+        const arrayBuffer = await sarvamResponse.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
 
         // Hardcoded visemes for now as in the original project
         const visemes = [
