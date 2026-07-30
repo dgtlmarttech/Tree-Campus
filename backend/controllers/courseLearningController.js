@@ -134,19 +134,42 @@ export const saveProgress = async (req, res) => {
       completedTheorySectionIds,
       videoWatchedSectionIds,
       lastNoteIndexTaught,
+      newlyCompletedDayIndex,
+      introShownDayIndex,
     } = req.body;
 
-    const updateData = { lastActivity: new Date() };
-    if (currentDayIndex !== undefined) updateData.currentDayIndex = currentDayIndex;
-    if (completedTheorySectionIds !== undefined) updateData.completedTheorySectionIds = completedTheorySectionIds;
-    if (videoWatchedSectionIds !== undefined) updateData.videoWatchedSectionIds = videoWatchedSectionIds;
-    if (lastNoteIndexTaught !== undefined) updateData.lastNoteIndexTaught = lastNoteIndexTaught;
+    let progress = await CourseLearningProgress.findOne({ userId, courseId });
+    if (!progress) {
+      progress = new CourseLearningProgress({ userId, courseId });
+    }
 
-    const progress = await CourseLearningProgress.findOneAndUpdate(
-      { userId, courseId },
-      { $set: updateData },
-      { upsert: true, new: true }
-    );
+    progress.lastActivity = new Date();
+    if (currentDayIndex !== undefined) progress.currentDayIndex = currentDayIndex;
+    if (completedTheorySectionIds !== undefined) progress.completedTheorySectionIds = completedTheorySectionIds;
+    if (videoWatchedSectionIds !== undefined) progress.videoWatchedSectionIds = videoWatchedSectionIds;
+    if (lastNoteIndexTaught !== undefined) progress.lastNoteIndexTaught = lastNoteIndexTaught;
+
+    if (newlyCompletedDayIndex !== undefined) {
+      const exists = progress.dayCompletions.find(c => c.dayIndex === newlyCompletedDayIndex);
+      if (!exists) {
+        progress.dayCompletions.push({
+          dayIndex: newlyCompletedDayIndex,
+          completedAt: new Date()
+        });
+      }
+    }
+
+    if (introShownDayIndex !== undefined) {
+      const exists = progress.dayIntros.find(i => i.dayIndex === introShownDayIndex);
+      if (!exists) {
+        progress.dayIntros.push({
+          dayIndex: introShownDayIndex,
+          introShownAt: new Date()
+        });
+      }
+    }
+
+    await progress.save();
 
     res.status(200).json({ success: true, data: progress });
   } catch (error) {
@@ -172,6 +195,7 @@ export const askCourseLearning = async (req, res) => {
       question,
       language = 'English',
       history = [],
+      courseId,
       courseTitle = '',
       dayNumber = 1,
       dayTitle = '',
@@ -186,6 +210,30 @@ export const askCourseLearning = async (req, res) => {
     if (!question || question.trim() === '') {
       return res.status(400).json({ error: 'Question is required' });
     }
+
+    // --- 24-Hour Unlock Validation ---
+    if (courseId && dayNumber > 1) {
+      const progress = await CourseLearningProgress.findOne({ userId: user._id, courseId });
+      if (progress && progress.dayCompletions) {
+        const prevDayCompletion = progress.dayCompletions.find(c => c.dayIndex === dayNumber - 2);
+        
+        // If the previous day hasn't been completed yet (based on new tracking)
+        if (!prevDayCompletion) {
+           // Fallback for older users who might have completed it before tracking was added
+           if (progress.currentDayIndex < dayNumber - 1) {
+              return res.status(403).json({ success: false, error: 'This lesson is currently locked.' });
+           }
+        } else {
+           const completedTime = new Date(prevDayCompletion.completedAt).getTime();
+           const now = Date.now();
+           const requiredWaitMs = 24 * 60 * 60 * 1000; // 24 hours
+           if (now - completedTime < requiredWaitMs) {
+             return res.status(403).json({ success: false, error: 'This lesson will unlock after 24 hours.' });
+           }
+        }
+      }
+    }
+    // ---------------------------------
 
     const firstName = user.firstName || (user.name ? user.name.split(' ')[0] : 'there');
     const audioLanguage = language === 'English-Hindi' ? 'Hinglish' : language;

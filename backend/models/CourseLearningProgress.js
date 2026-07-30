@@ -31,6 +31,16 @@ const courseLearningProgressSchema = new mongoose.Schema({
     type: Number,
     default: -1, // -1 means not started
   },
+  // Tracks completion times for each day to enforce 24h locks
+  dayCompletions: [{
+    dayIndex: { type: Number, required: true },
+    completedAt: { type: Date, required: true }
+  }],
+  // Tracks when the welcome intro was shown for each day
+  dayIntros: [{
+    dayIndex: { type: Number, required: true },
+    introShownAt: { type: Date, default: Date.now }
+  }],
   // Timestamp of last activity for "welcome back" message
   lastActivity: {
     type: Date,
