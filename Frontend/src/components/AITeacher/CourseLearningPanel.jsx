@@ -60,12 +60,16 @@ export const CourseLearningPanel = () => {
     fetchEnrolledCourses,
     selectCourse,
     selectDay,
+    saveProgress,
     markDayTheoryComplete,
     markVideosWatched,
     isDayTheoryComplete,
     isDayVideoWatched,
     setDayLessonComplete,
     getUnlockedDayIndex,
+    getUnlockTime,
+    isIntroShown,
+    getLastNoteIndex,
     isDayLocked,
     toggleCourseMode
   } = useCourseLearning();
@@ -80,6 +84,23 @@ export const CourseLearningPanel = () => {
   const noteIndexRef = useRef(0); // tracks which note is currently being taught
 
   const firstName = user?.firstName || user?.name?.split(' ')[0] || 'there';
+
+  const formatUnlockTime = (ms) => {
+    if (!ms) return '';
+    const now = Date.now();
+    const diff = ms - now;
+    if (diff <= 0) return 'Available now';
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hours < 24) {
+      return `Available in ${hours}h ${minutes}m`;
+    }
+    
+    const date = new Date(ms);
+    return `Unlocks on ${date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}, ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+  };
 
   // ── Load enrolled courses on mount ────────────────────────────────────────
   useEffect(() => {
@@ -136,44 +157,88 @@ export const CourseLearningPanel = () => {
     if (!courseStructure) return;
 
     useAITeacher.getState().markUserInteracted();
-
-    // 1. Instantly inject a dynamic static greeting for the current day
-    const isFirstDay = currentDay.dayNumber === 1;
-    const greetingSpoken = isFirstDay 
-      ? `Welcome back, ${firstName}! Today is Day 1. I'll explain today's lesson. Let's begin!`
-      : `Welcome back, ${firstName}! Today is Day ${currentDay.dayNumber}. I'll explain today's lesson. Let's begin!`;
     
-    const greetingBoardText = isFirstDay
-      ? `Welcome back, ${firstName}! 👋<br/><br/>Today is <b>Day 1</b>.<br/><br/>I'll explain today's lesson.<br/><br/>Let's begin! 🚀`
-      : `Welcome back, ${firstName}! 👋<br/><br/>Today is <b>Day ${currentDay.dayNumber}</b>.<br/><br/>I'll explain today's lesson.<br/><br/>Let's begin! 🚀`;
+    // If the day is already fully completed, just show a completion message and stop.
+    if (isDayTheoryComplete(currentDay.sectionId)) {
+      const nextDayNum = currentDay.dayNumber + 1;
+      const completionText = `✅ You have successfully completed Day ${currentDay.dayNumber}. Day ${nextDayNum} will unlock tomorrow (after 24 hours). See you in the next lesson!`;
+      
+      const completionMessage = {
+        question: '__greeting__',
+        answer: completionText,
+        audio: null,
+        audio_text: completionText, // AI teacher will speak this
+        visemes: [],
+        lipsync: null,
+        id: useAITeacher.getState().messages.length
+      };
 
-    const greetingMessage = {
-      question: '__greeting__',
-      answer: greetingBoardText,
-      audio: null,
-      audio_text: greetingSpoken,
-      visemes: [],
-      lipsync: null,
-      id: useAITeacher.getState().messages.length
-    };
+      useAITeacher.setState((state) => ({
+        messages: [...state.messages, completionMessage],
+        currentMessage: null,
+      }));
+      useAITeacher.getState().playMessage(completionMessage);
+      setHasGreeted(true);
+      return;
+    }
 
-    useAITeacher.setState((state) => ({
-      messages: [...state.messages, greetingMessage],
-      currentMessage: null,
-    }));
-    useAITeacher.getState().playMessage(greetingMessage);
-
-    // 2. Fetch the first note's teaching content in the background while the greeting plays
-    noteIndexRef.current = 0;
+    const dayIdx = currentDay.dayNumber - 1;
+    const introAlreadyShown = isIntroShown(dayIdx);
     const totalNotes = currentDay.studyNotes?.length || 0;
+
+    let startNoteIndex = 0;
+
+    if (!introAlreadyShown) {
+      // 1. Instantly inject a dynamic static greeting for the current day
+      const isFirstDay = currentDay.dayNumber === 1;
+      const greetingSpoken = isFirstDay 
+        ? `Welcome back, ${firstName}! Today is Day 1. I'll explain today's lesson. Let's begin!`
+        : `Welcome back, ${firstName}! Today is Day ${currentDay.dayNumber}. I'll explain today's lesson. Let's begin!`;
+      
+      const greetingBoardText = isFirstDay
+        ? `Welcome back, ${firstName}! 👋<br/><br/>Today is <b>Day 1</b>.<br/><br/>I'll explain today's lesson.<br/><br/>Let's begin! 🚀`
+        : `Welcome back, ${firstName}! 👋<br/><br/>Today is <b>Day ${currentDay.dayNumber}</b>.<br/><br/>I'll explain today's lesson.<br/><br/>Let's begin! 🚀`;
+
+      const greetingMessage = {
+        question: '__greeting__',
+        answer: greetingBoardText,
+        audio: null,
+        audio_text: greetingSpoken,
+        visemes: [],
+        lipsync: null,
+        id: useAITeacher.getState().messages.length
+      };
+
+      useAITeacher.setState((state) => ({
+        messages: [...state.messages, greetingMessage],
+        currentMessage: null,
+      }));
+      useAITeacher.getState().playMessage(greetingMessage);
+      
+      // Save that the intro was shown
+      saveProgress({ introShownDayIndex: dayIdx });
+    } else {
+      // Intro already shown, continue from where the user left off
+      const lastIndex = getLastNoteIndex();
+      if (lastIndex >= 0 && lastIndex < totalNotes - 1) {
+         startNoteIndex = lastIndex + 1;
+      } else {
+         // Either started fresh or completed all but returned. Start from beginning
+         startNoteIndex = 0;
+      }
+    }
+
+    // 2. Fetch the note's teaching content
+    noteIndexRef.current = startNoteIndex;
 
     const fetchNote = async (noteIdx) => {
       const isLastNote = noteIdx >= totalNotes - 1;
       const payload = {
-        question: noteIdx === 0
+        question: noteIdx === 0 && !introAlreadyShown
           ? `Please start teaching Day ${currentDay.dayNumber} theory notes now. Begin teaching directly.`
           : `Continue teaching. Now teach note ${noteIdx + 1} of ${totalNotes}.`,
         language,
+        courseId: selectedCourseId,
         courseTitle: courseStructure.course.title,
         dayNumber: currentDay.dayNumber,
         dayTitle: currentDay.title,
@@ -183,6 +248,10 @@ export const CourseLearningPanel = () => {
       };
 
       const data = await askAIWithContext(payload, isLastNote ? handleLessonComplete : null);
+
+      if (data && !data.error) {
+         saveProgress({ lastNoteIndexTaught: noteIdx });
+      }
 
       // If more notes remain and teacher didn't complete lesson, auto-fetch next note
       if (data && !data.lessonComplete && noteIdx < totalNotes - 1) {
@@ -194,9 +263,9 @@ export const CourseLearningPanel = () => {
       }
     };
 
-    await fetchNote(0);
+    await fetchNote(startNoteIndex);
     setHasGreeted(true);
-  }, [courseStructure, selectedDayIndex, language, askAIWithContext, handleLessonComplete, firstName]);
+  }, [courseStructure, selectedDayIndex, language, askAIWithContext, handleLessonComplete, firstName, isIntroShown, getLastNoteIndex, saveProgress, selectedCourseId, isDayTheoryComplete]);
 
   useEffect(() => {
     fireGreetingRef.current = fireGreeting;
@@ -214,6 +283,7 @@ export const CourseLearningPanel = () => {
     const payload = {
       question: q,
       language,
+      courseId: selectedCourseId,
       courseTitle: courseStructure.course.title,
       dayNumber: currentDay.dayNumber,
       dayTitle: currentDay.title,
@@ -380,6 +450,11 @@ export const CourseLearningPanel = () => {
                       <h3 className={`text-sm font-semibold truncate ${active ? 'text-white' : locked ? 'text-gray-500' : 'text-gray-200'}`}>
                         {day.title}
                       </h3>
+                      {locked && getUnlockTime(i) && (
+                        <p className="text-[11px] text-amber-500/80 mt-1">
+                           {formatUnlockTime(getUnlockTime(i))}
+                        </p>
+                      )}
                     </div>
                   </div>
 

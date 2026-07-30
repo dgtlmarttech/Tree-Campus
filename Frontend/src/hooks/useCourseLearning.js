@@ -167,13 +167,15 @@ export const useCourseLearning = create(
         const newCompleted = [...currentIds, sectionId];
         // Advance to next day if available
         const nextDayIndex = Math.min(selectedDayIndex + 1, (courseStructure?.totalDays || 1) - 1);
+        const maxCurrent = Math.max(progress?.currentDayIndex || 0, nextDayIndex);
 
         set(() => ({ dayLessonComplete: true }));
 
         await get().saveProgress({
           completedTheorySectionIds: newCompleted,
-          currentDayIndex: nextDayIndex,
+          currentDayIndex: maxCurrent,
           lastNoteIndexTaught: -1, // reset for next day
+          newlyCompletedDayIndex: selectedDayIndex, // record completion timestamp
         });
       },
 
@@ -192,13 +194,51 @@ export const useCourseLearning = create(
       },
 
       // ── Computed helpers ──────────────────────────────────────────────────
+      isIntroShown: (dayIndex) => {
+        const { progress } = get();
+        if (!progress || !progress.dayIntros) return false;
+        return progress.dayIntros.some(i => i.dayIndex === dayIndex);
+      },
+
+      getLastNoteIndex: () => {
+        const { progress } = get();
+        return progress?.lastNoteIndexTaught ?? -1;
+      },
+
       getUnlockedDayIndex: () => {
         const { progress } = get();
         return progress?.currentDayIndex || 0;
       },
+      
+      getUnlockTime: (dayIndex) => {
+        if (dayIndex === 0) return null;
+        const { progress } = get();
+        if (!progress || !progress.dayCompletions) return null;
+        
+        const prevDayCompletion = progress.dayCompletions.find(c => c.dayIndex === dayIndex - 1);
+        if (!prevDayCompletion) return null;
+        
+        return new Date(prevDayCompletion.completedAt).getTime() + (24 * 60 * 60 * 1000);
+      },
 
       isDayLocked: (dayIndex) => {
-        return dayIndex > get().getUnlockedDayIndex();
+        if (dayIndex === 0) return false;
+        
+        const { progress } = get();
+        if (!progress) return true;
+        
+        // 1. Check strict 24h completion timestamp logic
+        if (progress.dayCompletions && progress.dayCompletions.length > 0) {
+           const prevDayCompletion = progress.dayCompletions.find(c => c.dayIndex === dayIndex - 1);
+           if (prevDayCompletion) {
+               const unlockTimeMs = new Date(prevDayCompletion.completedAt).getTime() + (24 * 60 * 60 * 1000);
+               return Date.now() < unlockTimeMs;
+           }
+           // If no prevDayCompletion found, check fallback (for legacy progress)
+        }
+        
+        // 2. Legacy fallback
+        return dayIndex > (progress.currentDayIndex || 0);
       },
 
       isDayTheoryComplete: (sectionId) => {
