@@ -120,7 +120,7 @@ export const CourseLearningPanel = () => {
 
   useEffect(() => {
     // Wait until both structure and progress are loaded!
-    if (!courseStructure || !progress || isLoadingProgress || isLoadingStructure || aiLoading) return;
+    if (!courseStructure || !progress || isLoadingProgress || isLoadingStructure) return;
     const currentDay = courseStructure.days[selectedDayIndex];
     if (!currentDay) return;
 
@@ -141,9 +141,8 @@ export const CourseLearningPanel = () => {
         }
       }, 500);
     }
-    // We do NOT clear the timeout in cleanup. 
-    // If the component re-renders (e.g., progress loads), we still want the AI to teach.
-  }, [selectedDayIndex, courseStructure, aiLoading]);
+  }, [selectedDayIndex, courseStructure, progress, isLoadingProgress, isLoadingStructure]);
+
 
   // ── Fire day lesson complete when AI signals it ───────────────────────────
   const handleLessonComplete = useCallback(() => {
@@ -152,6 +151,41 @@ export const CourseLearningPanel = () => {
       markDayTheoryComplete(currentDay.sectionId);
     }
   }, [courseStructure, selectedDayIndex]);
+
+  // ── Helper: waits for the currently active audio player to finish playing ──
+  // Uses the 'ended' event so we never interrupt mid-sentence.
+  // Falls back after maxWaitMs to prevent the lesson from getting stuck.
+  const waitForAudioEnd = (maxWaitMs = 60000) => {
+    return new Promise((resolve) => {
+      const attachListener = () => {
+        const player = useAITeacher.getState()._activeAudioPlayer;
+        if (!player) {
+          // No active player — audio already finished or never started
+          resolve();
+          return;
+        }
+        let fallback;
+        const onEnded = () => {
+          clearTimeout(fallback);
+          resolve();
+        };
+        const onError = () => {
+          clearTimeout(fallback);
+          resolve();
+        };
+        player.addEventListener('ended', onEnded, { once: true });
+        player.addEventListener('error', onError, { once: true });
+        // Safety fallback: if ended never fires (e.g. audio killed externally), resolve anyway
+        fallback = setTimeout(() => {
+          player.removeEventListener('ended', onEnded);
+          player.removeEventListener('error', onError);
+          resolve();
+        }, maxWaitMs);
+      };
+      // Small delay so playMessage() can register the audio player before we check
+      setTimeout(attachListener, 300);
+    });
+  };
 
   const fireGreeting = useCallback(async (currentDay) => {
     if (!courseStructure) return;
@@ -217,6 +251,7 @@ export const CourseLearningPanel = () => {
       
       // Save that the intro was shown
       saveProgress({ introShownDayIndex: dayIdx });
+      await waitForAudioEnd();
     } else {
       // Intro already shown, continue from where the user left off
       const lastIndex = getLastNoteIndex();
@@ -253,11 +288,11 @@ export const CourseLearningPanel = () => {
          saveProgress({ lastNoteIndexTaught: noteIdx });
       }
 
-      // If more notes remain and teacher didn't complete lesson, auto-fetch next note
+      // If more notes remain and teacher didn't complete lesson, wait for audio then fetch next
       if (data && !data.lessonComplete && noteIdx < totalNotes - 1) {
+        await waitForAudioEnd();
         noteIndexRef.current = noteIdx + 1;
-        // Wait briefly for audio to start playing, then fetch next note
-        setTimeout(() => fetchNote(noteIdx + 1), 500);
+        fetchNote(noteIdx + 1);
       } else if (data?.lessonComplete) {
         handleLessonComplete();
       }

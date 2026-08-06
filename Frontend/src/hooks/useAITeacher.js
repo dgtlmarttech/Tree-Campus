@@ -307,8 +307,11 @@ export const useAITeacher = create(
     }),
     {
       name: "ai-teacher-storage",
-      partialize: (state) => ({ 
-        messages: state.messages, 
+      partialize: (state) => ({
+        // Strip audio (base64 MP3) and audioPlayer (DOM object) from every message
+        // before saving to localStorage. These are huge and blow the 5MB quota.
+        // Text fields are enough to re-display the chat history.
+        messages: state.messages.map(({ audio, audioPlayer, ...rest }) => rest),
         language: state.language,
         classroom: state.classroom,
         userInteracted: state.userInteracted,
