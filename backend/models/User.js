@@ -98,6 +98,7 @@ const userSchema = new mongoose.Schema(
     savedBlogs: [
       { type: mongoose.Schema.Types.ObjectId, ref: "Blog" }
     ],
+    fcmToken: { type: String },
   },
   { timestamps: true }
 );
@@ -222,3 +223,4 @@ userSchema.methods.generateOTP = function () {
 };
 
 export default mongoose.model("User", userSchema);
+

@@ -23,19 +23,28 @@ export const completeLesson = async (req, res) => {
     const courseId = lessonDoc.courseId;
     const sectionIds = (await (await import('../models/Section.js')).default.find({ courseId }).select('_id')).map(s => s._id);
 
-    // Atomic update to Progress
-    const progressDoc = await Progress.findOneAndUpdate(
-      { user: userId, course: courseId },
-      { 
-        $addToSet: { completedLessons: { lesson: lessonId, completedAt: new Date() } },
-        $set: { lastAccessedAt: new Date() }
-      },
-      { new: true, upsert: true }
-    );
+    // Find or create progress doc; check before push to avoid duplicates
+    let progressDoc = await Progress.findOne({ user: userId, course: courseId });
+    if (!progressDoc) {
+      progressDoc = await Progress.create({ user: userId, course: courseId });
+    }
 
-    // Atomic update to Enrollment
+    // Only add if this lesson isn't already in completedLessons
+    const alreadyCompleted = progressDoc.completedLessons.some(
+      c => c.lesson && c.lesson.toString() === lessonId.toString()
+    );
+    if (!alreadyCompleted) {
+      progressDoc.completedLessons.push({ lesson: lessonId, completedAt: new Date() });
+      progressDoc.lastAccessedAt = new Date();
+      await progressDoc.save();
+    }
+
+    // Count unique lesson IDs (ignore any legacy duplicates)
     const totalLessons = await Lesson.countDocuments({ courseId, sectionId: { $in: sectionIds } });
-    const completedCount = progressDoc.completedLessons.length;
+    const uniqueCompleted = new Set(
+      progressDoc.completedLessons.map(c => c.lesson && c.lesson.toString()).filter(Boolean)
+    );
+    const completedCount = uniqueCompleted.size;
     const newProgress = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
 
     await Promise.all([
@@ -95,7 +104,11 @@ export const getCourseProgress = async (req, res) => {
       courseId,
       sectionId: { $in: sectionIds }
     });
-    const completedCount = progressDoc.completedLessons.length;
+    // Use unique lesson IDs to avoid counting duplicates
+    const uniqueCompletedIds = new Set(
+      progressDoc.completedLessons.map(c => c.lesson && c.lesson.toString()).filter(Boolean)
+    );
+    const completedCount = uniqueCompletedIds.size;
     const progress = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
 
     // Optionally update and save progressDoc.overallProgress if different

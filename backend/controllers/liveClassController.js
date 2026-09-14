@@ -1,4 +1,7 @@
 import LiveClass from '../models/LiveClass.js';
+import User from '../models/User.js';
+import Notification from '../models/Notification.js';
+import { sendFCMNotification } from '../utils/fcmHelper.js';
 import { zoomApiRequest, generateSDKSignature } from '../utils/zoomAuth.js';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -167,7 +170,43 @@ export const createLiveClass = async (req, res) => {
       createdClasses.push(newClass);
     }
 
-    res.status(201).json({
+          // Send Notifications to all users with FCM tokens
+      try {
+        const users = await User.find({ fcmToken: { $exists: true, $ne: null } });
+        const tokens = users.map(u => u.fcmToken).filter(t => t);
+        
+        if (users.length > 0) {
+          const mainClass = (isRecurring || createdClasses.length > 1) ? createdClasses[0] : createdClasses[0];
+          
+          const notifTitle = "New Live Class: " + mainClass.title;
+          const notifBody = "Join the upcoming live class at " + new Date(mainClass.scheduledAt).toLocaleString();
+          const notifData = {
+            type: 'live_class',
+            route: '/live-classes',
+            referenceId: mainClass._id.toString()
+          };
+
+          // Save to DB
+          const notificationsToSave = users.map(u => ({
+            userId: u._id,
+            title: notifTitle,
+            body: notifBody,
+            type: notifData.type,
+            route: notifData.route,
+            referenceId: notifData.referenceId
+          }));
+          
+          await Notification.insertMany(notificationsToSave);
+          
+          if (tokens.length > 0) {
+            await sendFCMNotification(tokens, notifTitle, notifBody, notifData);
+          }
+        }
+      } catch (notifErr) {
+        console.error('Failed to send notifications for live class:', notifErr);
+      }
+
+      res.status(201).json({
       success: true,
       count: createdClasses.length,
       data: (isRecurring || createdClasses.length > 1) ? createdClasses : createdClasses[0]
@@ -422,3 +461,5 @@ async function updateMeetingStatuses() {
 
 // Run status update every minute
 setInterval(updateMeetingStatuses, 60000);
+
+

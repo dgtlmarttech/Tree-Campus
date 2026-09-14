@@ -26,8 +26,10 @@ import registerSchool from './routes/schoolRegistration.js';
 import assignmentRoutes from './routes/assignmentRoutes.js';
 import contestRoutes from './routes/contestRoutes.js';
 import adminContestRoutes from './routes/adminContestRoutes.js';
+import learningJourneyRoutes from './routes/learningJourneyRoutes.js';
 import zoomWebhooks from './routes/zoomWebhooks.js';
 import teacherApplicationRoutes from './routes/teacherApplicationRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 import session from 'express-session';
 import passport from 'passport';
@@ -119,11 +121,13 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/volunteer', volunteerRoutes);
 app.use('/api/teachers', teacherApplicationRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/account-deletion-request', accountDeletion);
 app.use('/api/registerschool', registerSchool);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/contest', contestRoutes);
 app.use('/api/admin/contest', adminContestRoutes);
+app.use('/api/learning-journey', learningJourneyRoutes);
 
 // 404 handler
 app.use(notFound);
@@ -161,3 +165,5 @@ process.on('uncaughtException', (err) => {
 });
 
 export default app;// Force restart
+
+

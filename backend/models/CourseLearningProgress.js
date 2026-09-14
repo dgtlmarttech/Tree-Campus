@@ -46,7 +46,15 @@ const courseLearningProgressSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-}, {
+  // --- Journey Progress ---
+  journeyDayStates: [{
+    dayNumber: { type: Number, required: true }, // 1 to 90
+    courseStatus: { type: String, enum: ['not_started', 'in_progress', 'completed', 'skipped'], default: 'not_started' },
+    spokeeStatus: { type: String, enum: ['not_started', 'in_progress', 'completed', 'skipped'], default: 'not_started' },
+    gameStatus:   { type: String, enum: ['not_started', 'in_progress', 'completed', 'skipped'], default: 'not_started' },
+    quizStatus:   { type: String, enum: ['not_started', 'in_progress', 'completed', 'skipped'], default: 'not_started' }
+  }],
+  isJourneyComplete: { type: Boolean, default: false },}, {
   timestamps: true,
 });
 
@@ -56,3 +64,4 @@ courseLearningProgressSchema.index({ userId: 1, courseId: 1 }, { unique: true })
 const CourseLearningProgress = mongoose.model('CourseLearningProgress', courseLearningProgressSchema);
 
 export default CourseLearningProgress;
+
