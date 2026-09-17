@@ -1,10 +1,10 @@
 import express from 'express';
 import { getCurrentJourneyState, updateSectionAction } from '../controllers/learningJourneyController.js';
-import { requireAuth } from '../middleware/authMiddleware.js'; // Assuming this exists
+import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.get('/current', requireAuth, getCurrentJourneyState);
-router.post('/section/action', requireAuth, updateSectionAction);
+router.get('/current', protect, getCurrentJourneyState);
+router.post('/section/action', protect, updateSectionAction);
 
 export default router;
