@@ -20,11 +20,13 @@ export const getCurrentJourneyState = async (req, res) => {
     const progress = await CourseLearningProgress.findOne({ userId }).sort({ updatedAt: -1 });
     
     if (!progress) {
+      const mapping = await LearningDayMapping.findOne({ day: 1 }).populate('courseSectionId quizId');
       return res.status(200).json({
         success: true,
         currentDay: 1,
         locked: false,
-        journeyDayStates: []
+        journeyDayStates: [],
+        mapping
       });
     }
 
