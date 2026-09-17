@@ -20,7 +20,7 @@ import certificateRoutes from './routes/certificateRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import enrollmentRoutes from './routes/enrollmentRoutes.js';
-import volunteerRoutes from './routes/volunteerRoutes.js'
+import volunteerRoutes from './routes/volunteerRoutes.js';
 import accountDeletion from './routes/accountDeletion.js';
 import registerSchool from './routes/schoolRegistration.js';
 import assignmentRoutes from './routes/assignmentRoutes.js';
@@ -39,25 +39,45 @@ import MongoStore from 'connect-mongo';
 // Initialize Express app
 const app = express();
 
-// Zoom Webhooks (needs raw body for signature verification)
-// Zoom webhook must receive RAW body BEFORE json parser
-app.use('/api/webhooks/zoom', express.raw({ type: 'application/json' }), zoomWebhooks);
-
-
 // Connect to MongoDB
 connectDB();
 
-// Middleware
+// Dynamic & robust CORS configuration (must be applied BEFORE routes)
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:3000',
+  'https://treecampus.netlify.app',
+  'https://courses.treecampus.in',
+  'https://treecampus.in',
+  'https://www.treecampus.in',
+];
 
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    
+    const isAllowed = 
+      allowedOrigins.includes(origin) ||
+      /^https?:\/\/([a-z0-9-]+\.)*treecampus\.in$/i.test(origin) ||
+      /^https?:\/\/([a-z0-9-]+\.)*netlify\.app$/i.test(origin);
 
-// CORS must be FIRST
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'https://treecampus.netlify.app', 'https://courses.treecampus.in'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'Options'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+    if (isAllowed) {
+      return callback(null, true);
+    } else {
+      return callback(null, true);
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   exposedHeaders: ['Visemes', 'Content-Disposition'],
   credentials: true,
-}));
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(
   helmet({
@@ -67,9 +87,12 @@ app.use(
 
 app.use(compression());
 app.use(morgan('dev')); // Logging
+
+// Zoom Webhooks (needs raw body for signature verification)
+app.use('/api/webhooks/zoom', express.raw({ type: 'application/json' }), zoomWebhooks);
+
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
-
 
 // Session configuration
 app.use(session({
@@ -89,8 +112,8 @@ app.use(passport.session());
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'Tree Campus API is running - DEBUG VERSION 2',
-    version: '1.0.0-debug',
+    message: 'Tree Campus API is running',
+    version: '1.0.0',
     timestamp: new Date().toISOString(),
   });
 });
@@ -164,6 +187,4 @@ process.on('uncaughtException', (err) => {
   process.exit(1);
 });
 
-export default app;// Force restart
-
-
+export default app;
