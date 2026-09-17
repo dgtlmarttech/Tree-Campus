@@ -10,16 +10,6 @@ const check24HourLock = (dayCompletions, targetDay) => {
     return { locked: true, reason: 'Previous day not completed' };
   }
   
-  const completedTime = new Date(prevDayCompletion.completedAt).getTime();
-  const now = Date.now();
-  const requiredWaitMs = 24 * 60 * 60 * 1000;
-  
-  if (now - completedTime < requiredWaitMs) {
-    const remainingMs = requiredWaitMs - (now - completedTime);
-    const remainingHours = Math.ceil(remainingMs / (1000 * 60 * 60));
-    return { locked: true, reason: 'Unlocks in ' + remainingHours + ' hours', remainingMs };
-  }
-  
   return { locked: false };
 };
 
