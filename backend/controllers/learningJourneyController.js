@@ -1,5 +1,6 @@
 import CourseLearningProgress from '../models/CourseLearningProgress.js';
 import LearningDayMapping from '../models/LearningDayMapping.js';
+import Notification from '../models/Notification.js';
 import mongoose from 'mongoose';
 
 const check24HourLock = (dayCompletions, targetDay) => {
@@ -141,6 +142,20 @@ export const updateSectionAction = async (req, res) => {
       const alreadyCompleted = progress.dayCompletions.find(c => c.dayIndex === day);
       if (!alreadyCompleted) {
          progress.dayCompletions.push({ dayIndex: day, completedAt: new Date() });
+         
+         if (day < 90) {
+           try {
+             await Notification.create({
+               userId: userId,
+               title: `Day ${day + 1} is Ready!`,
+               body: `Great job completing Day ${day}. Start learning Day ${day + 1} now.`,
+               type: 'learning_journey',
+               route: '/learning-journey'
+             });
+           } catch (notifyErr) {
+             console.error('Error creating notification:', notifyErr);
+           }
+         }
       }
       
       if (day === 90) {

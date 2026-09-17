@@ -170,12 +170,12 @@ export const createLiveClass = async (req, res) => {
       createdClasses.push(newClass);
     }
 
-          // Send Notifications to all users with FCM tokens
+      // Send Notifications to all users (In-App) and FCM tokens (Push)
       try {
-        const users = await User.find({ fcmToken: { $exists: true, $ne: null } });
-        const tokens = users.map(u => u.fcmToken).filter(t => t);
+        const allUsers = await User.find({}).select('_id fcmToken');
+        const tokens = allUsers.map(u => u.fcmToken).filter(t => t != null && t !== '');
         
-        if (users.length > 0) {
+        if (allUsers.length > 0) {
           const mainClass = (isRecurring || createdClasses.length > 1) ? createdClasses[0] : createdClasses[0];
           
           const notifTitle = "New Live Class: " + mainClass.title;
@@ -186,8 +186,8 @@ export const createLiveClass = async (req, res) => {
             referenceId: mainClass._id.toString()
           };
 
-          // Save to DB
-          const notificationsToSave = users.map(u => ({
+          // Save In-App Notifications to DB for ALL users
+          const notificationsToSave = allUsers.map(u => ({
             userId: u._id,
             title: notifTitle,
             body: notifBody,
@@ -198,6 +198,7 @@ export const createLiveClass = async (req, res) => {
           
           await Notification.insertMany(notificationsToSave);
           
+          // Send Push Notifications ONLY to users with FCM tokens
           if (tokens.length > 0) {
             await sendFCMNotification(tokens, notifTitle, notifBody, notifData);
           }
