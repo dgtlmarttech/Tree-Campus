@@ -53,6 +53,7 @@ const adminMenuItems = [
   { path: "/admin/teachers", icon: FiUsers, label: "Teacher Applications", section: "management" },
   { path: "/admin/account-deletions", icon: FiUserX, label: "Account Deletions", section: "management" },
   { path: "/admin/management", icon: FiUsers, label: "Admin Management", section: "management" },
+  { path: "/admin/settings", icon: FiSettings, label: "App Settings", section: "management" },
 ];
 
 const studentMenuItems = [
