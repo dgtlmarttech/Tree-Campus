@@ -4,13 +4,6 @@ import Notification from '../models/Notification.js';
 import mongoose from 'mongoose';
 
 const check24HourLock = (dayCompletions, targetDay) => {
-  if (targetDay <= 1) return { locked: false };
-  
-  const prevDayCompletion = dayCompletions.find(c => c.dayIndex === targetDay - 1);
-  if (!prevDayCompletion) {
-    return { locked: true, reason: 'Previous day not completed' };
-  }
-  
   return { locked: false };
 };
 
@@ -171,3 +164,4 @@ export const updateSectionAction = async (req, res) => {
     res.status(500).json({ success: false, error: 'Internal Server Error' });
   }
 };
+
