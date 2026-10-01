@@ -59,6 +59,7 @@ import AdminManagement from './pages/admin/AdminManagement';
 import ExamResults from './pages/admin/ExamResults';
 import AppSettings from './pages/admin/AppSettings';
 import AdminNotificationManagement from './pages/admin/AdminNotificationManagement';
+import DayNotificationManagement from './pages/admin/DayNotificationManagement';
 // Category management removed
 
 // Layout
@@ -345,6 +346,15 @@ function App() {
     element={
       <ProtectedRoute adminOnly>
         <AdminNotificationManagement />
+      </ProtectedRoute>
+    }
+  />
+
+  <Route 
+    path="/admin/day-notifications"
+    element={
+      <ProtectedRoute adminOnly>
+        <DayNotificationManagement />
       </ProtectedRoute>
     }
   />

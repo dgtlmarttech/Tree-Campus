@@ -54,6 +54,7 @@ const adminMenuItems = [
   { path: "/admin/account-deletions", icon: FiUserX, label: "Account Deletions", section: "management" },
   { path: "/admin/management", icon: FiUsers, label: "Admin Management", section: "management" },
   { path: "/admin/notifications", icon: FiBell, label: "Push Notifications", section: "management" },
+  { path: "/admin/day-notifications", icon: FiBell, label: "90-Day Notifications", section: "management" },
   { path: "/admin/settings", icon: FiSettings, label: "App Settings", section: "management" },
 ];
 
