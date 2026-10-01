@@ -31,6 +31,7 @@ import learningJourneyRoutes from './routes/learningJourneyRoutes.js';
 import zoomWebhooks from './routes/zoomWebhooks.js';
 import teacherApplicationRoutes from './routes/teacherApplicationRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import adminNotificationRoutes from './routes/adminNotificationRoutes.js';
 
 import session from 'express-session';
 import passport from 'passport';
@@ -152,6 +153,7 @@ app.use('/api/config', appConfigRoutes);
 app.use('/api/contest', contestRoutes);
 app.use('/api/admin/contest', adminContestRoutes);
 app.use('/api/learning-journey', learningJourneyRoutes);
+app.use('/api/admin/notifications', adminNotificationRoutes);
 
 // 404 handler
 app.use(notFound);

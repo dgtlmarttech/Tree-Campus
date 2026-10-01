@@ -45,7 +45,9 @@ export const sendFCMNotification = async (tokens, title, body, data = {}) => {
         }
       });
     }
+    return response;
   } catch (error) {
     console.error('Error sending message:', error);
+    return null;
   }
 };

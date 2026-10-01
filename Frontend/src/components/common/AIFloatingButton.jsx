@@ -6,8 +6,13 @@ const AIFloatingButton = () => {
   const [isHovered, setIsHovered] = useState(false);
   const location = useLocation();
 
-  // Hide on assignment pages and admin routes to avoid overlapping with interfaces
-  if (location.pathname.includes('/assignment/') || location.pathname.startsWith('/admin')) {
+
+  // Hide on assignment pages, admin routes, and ai-teacher page to avoid overlapping with interfaces
+  if (
+    location.pathname.includes('/assignment/') || 
+    location.pathname.startsWith('/admin') || 
+    location.pathname.startsWith('/ai-teacher')
+  ) {
     return null;
   }
 

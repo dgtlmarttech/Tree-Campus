@@ -114,6 +114,17 @@ export const CourseLearningPanel = () => {
     }
   }, [selectedCourseId]);
 
+  // ── Dynamic Countdown Timer for Unlocking Days ──────────────────────────
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    // Tick every minute to update the UI "Available in Xh Ym" and unlock days automatically
+    const timer = setInterval(() => setTick(t => t + 1), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+
+
+  
   // ── Fire teaching when day changes ──────────────────────────────────────
   const fireGreetingRef = useRef(null);
   const teachingTimerRef = useRef(null);
@@ -353,6 +364,12 @@ export const CourseLearningPanel = () => {
     // Reset lesson state so teacher starts fresh
     setHasGreeted(false);
     setDayLessonComplete(false);
+    
+    // On mobile, auto-close the panel so the user can see the AI Teacher teaching
+    if (window.innerWidth < 640) {
+      setCourseMode(false);
+    }
+    
     await fireGreetingRef.current?.(currentDay);
   };
 
@@ -373,7 +390,7 @@ export const CourseLearningPanel = () => {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="absolute top-0 right-0 h-full w-full sm:w-[380px] bg-gray-900/95 border-l border-gray-700/50 shadow-2xl backdrop-blur-xl flex flex-col z-40 transition-transform duration-300">
+    <div className="absolute top-0 right-0 h-full w-full sm:w-[380px] bg-gray-900/95 border-l border-gray-700/50 shadow-2xl backdrop-blur-xl flex flex-col z-[60] transition-transform duration-300">
       
       {/* ── Top bar: Header & Close ───────────────────────────────────────── */}
       <div className="flex items-center justify-between px-5 pt-5 pb-3">
@@ -494,44 +511,28 @@ export const CourseLearningPanel = () => {
                   </div>
 
                   {/* Expanded Active Day Details */}
-                  {active && (
+                  {active && !locked && (
                     <div className="mt-4 pt-3 border-t border-gray-700/50 space-y-3">
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="flex flex-col gap-2">
                         {/* Theory Notes Box — clickable to trigger AI teaching */}
                         <button
                           onClick={handleTheoryNotesClick}
                           disabled={aiLoading}
                           title="Click to start AI lesson"
-                          className={`bg-gray-900/80 rounded-lg p-2 flex flex-col items-center justify-center border transition-all duration-200 text-left w-full
+                          className={`bg-gray-900/80 rounded-lg p-3 flex flex-col items-center justify-center border transition-all duration-200 text-left w-full
                             ${aiLoading
                               ? 'border-gray-800 opacity-60 cursor-wait'
-                              : 'border-teal-700/60 hover:border-teal-400 hover:bg-teal-900/20 cursor-pointer hover:scale-[1.03] active:scale-95'}`}
+                              : 'border-teal-700/60 hover:border-teal-400 hover:bg-teal-900/20 cursor-pointer hover:scale-[1.02] active:scale-95'}`}
                         >
-                          <span className="text-lg mb-0.5">{aiLoading ? '⏳' : '📖'}</span>
-                          <span className="text-gray-300 text-xs font-medium text-center leading-tight">
+                          <span className="text-2xl mb-1">{aiLoading ? '⏳' : '📖'}</span>
+                          <span className="text-gray-200 text-sm font-medium text-center leading-tight">
                             {day.totalStudyNotes} Theory Notes
                           </span>
-                          <span className="text-teal-400 text-[10px] mt-0.5 font-semibold">
+                          <span className="text-teal-400 text-xs mt-1 font-semibold">
                             {aiLoading ? 'Teaching...' : '▶ Start Lesson'}
                           </span>
                         </button>
-                        <div className="bg-gray-900/80 rounded-lg p-2 flex flex-col items-center justify-center border border-gray-800">
-                          <span className="text-lg mb-0.5">🎥</span>
-                          <span className="text-gray-300 text-xs font-medium text-center leading-tight">
-                            {day.totalVideoLessons} Videos
-                          </span>
-                        </div>
                       </div>
-
-                      {/* Video Reminder if theory done */}
-                      {(dayLessonComplete || isCurrentDayComplete) && (
-                        <VideoReminderCard
-                          dayNumber={day.dayNumber}
-                          isWatched={videoWatched}
-                          courseId={selectedCourseId}
-                          onMarkWatched={() => markVideosWatched(currentSectionId)}
-                        />
-                      )}
 
                       {/* Quick Question Input - commented out as requested
                       {!dayLessonComplete && !isCurrentDayComplete && hasGreeted && (

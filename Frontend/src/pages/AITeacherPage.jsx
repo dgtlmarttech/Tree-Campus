@@ -29,7 +29,7 @@ const AITeacherPage = () => {
   }, []);
 
   return (
-    <div className="relative w-full h-[calc(100dvh-110px)] bg-black overflow-hidden flex flex-col">
+    <div className="relative w-full h-[calc(100vh-110px)] h-[calc(100dvh-110px)] bg-black overflow-hidden flex flex-col overscroll-none">
       {/* 3D AI Teacher scene — takes all remaining height */}
       <div className="relative flex-1 overflow-hidden min-h-0">
         <Experience />

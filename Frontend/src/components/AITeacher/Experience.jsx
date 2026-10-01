@@ -111,7 +111,7 @@ export const Experience = () => {
   };
 
   return (
-    <div className="relative z-[0] w-full h-full">
+    <div className="relative z-[0] w-full h-full touch-none">
       <div className="z-10 absolute bottom-4 md:bottom-10 w-full flex justify-center pointer-events-none px-4">
         {/* TypingBox commented out as requested
         <TypingBox
@@ -146,8 +146,8 @@ export const Experience = () => {
       {showPopup && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-lg z-[50]">
           <div
-            className="relative bg-white/10 backdrop-blur-2xl p-8 md:p-10 rounded-3xl shadow-2xl 
-      w-96 md:w-[28rem] text-center border border-white/20"
+            className="relative bg-white/10 backdrop-blur-2xl p-6 sm:p-8 md:p-10 rounded-3xl shadow-2xl 
+      w-[90%] max-w-[24rem] md:max-w-[28rem] text-center border border-white/20"
           >
             {/* Close Button */}
             <button

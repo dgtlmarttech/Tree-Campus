@@ -58,6 +58,7 @@ import ContestAdminDashboard from './pages/admin/ContestAdminDashboard';
 import AdminManagement from './pages/admin/AdminManagement';
 import ExamResults from './pages/admin/ExamResults';
 import AppSettings from './pages/admin/AppSettings';
+import AdminNotificationManagement from './pages/admin/AdminNotificationManagement';
 // Category management removed
 
 // Layout
@@ -335,6 +336,15 @@ function App() {
     element={
       <ProtectedRoute adminOnly>
         <AppSettings />
+      </ProtectedRoute>
+    }
+  />
+
+  <Route 
+    path="/admin/notifications"
+    element={
+      <ProtectedRoute adminOnly>
+        <AdminNotificationManagement />
       </ProtectedRoute>
     }
   />

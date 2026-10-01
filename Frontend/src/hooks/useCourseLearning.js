@@ -118,11 +118,40 @@ export const useCourseLearning = create(
         try {
           const data = await apiFetch(`/ai/course-learning/progress/${courseId}`);
           const progress = data.data;
+          
+          // Determine the highest unlocked day for initial selection
+          let targetDay = progress?.currentDayIndex || 0;
+          
+          // Helper to check lock logic manually before state is updated
+          const checkLock = (dayIndex) => {
+             if (dayIndex === 0) return false;
+             if (!progress) return true;
+             
+             for (let i = 1; i <= dayIndex; i++) {
+                let locked = false;
+                const prev = progress.dayCompletions?.find(c => c.dayIndex === i - 1);
+                if (prev) {
+                    if (Date.now() < (new Date(prev.completedAt).getTime() + (24 * 60 * 60 * 1000))) {
+                        locked = true;
+                    }
+                } else {
+                    if (i > (progress.currentDayIndex || 0)) {
+                        locked = true;
+                    }
+                }
+                if (locked) return true;
+             }
+             return false;
+          };
+
+          while (targetDay > 0 && checkLock(targetDay)) {
+             targetDay--;
+          }
+
           set(() => ({
             progress,
             isLoadingProgress: false,
-            // Restore the saved day index from progress
-            selectedDayIndex: progress?.currentDayIndex || 0,
+            selectedDayIndex: targetDay,
           }));
           return progress;
         } catch (err) {
@@ -212,6 +241,11 @@ export const useCourseLearning = create(
       
       getUnlockTime: (dayIndex) => {
         if (dayIndex === 0) return null;
+        
+        // If the *previous* day is also locked, this day is domino-locked.
+        // It has no definitive unlock time yet, because the user must first unlock and complete the previous day.
+        if (get().isDayLocked(dayIndex - 1)) return null;
+
         const { progress } = get();
         if (!progress || !progress.dayCompletions) return null;
         
@@ -227,18 +261,25 @@ export const useCourseLearning = create(
         const { progress } = get();
         if (!progress) return true;
         
-        // 1. Check strict 24h completion timestamp logic
-        if (progress.dayCompletions && progress.dayCompletions.length > 0) {
-           const prevDayCompletion = progress.dayCompletions.find(c => c.dayIndex === dayIndex - 1);
-           if (prevDayCompletion) {
-               const unlockTimeMs = new Date(prevDayCompletion.completedAt).getTime() + (24 * 60 * 60 * 1000);
-               return Date.now() < unlockTimeMs;
+        for (let i = 1; i <= dayIndex; i++) {
+           let locked = false;
+           const prevCompletion = progress.dayCompletions?.find(c => c.dayIndex === i - 1);
+           
+           if (prevCompletion) {
+               const unlockTimeMs = new Date(prevCompletion.completedAt).getTime() + (24 * 60 * 60 * 1000);
+               if (Date.now() < unlockTimeMs) {
+                   locked = true;
+               }
+           } else {
+               if (i > (progress.currentDayIndex || 0)) {
+                   locked = true;
+               }
            }
-           // If no prevDayCompletion found, check fallback (for legacy progress)
+           
+           if (locked) return true; // If day i is locked, all subsequent days are also locked
         }
         
-        // 2. Legacy fallback
-        return dayIndex > (progress.currentDayIndex || 0);
+        return false;
       },
 
       isDayTheoryComplete: (sectionId) => {
