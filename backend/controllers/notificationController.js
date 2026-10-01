@@ -1,4 +1,4 @@
-import Notification from '../models/Notification.js';
+﻿import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 
 // @desc    Get user notifications
@@ -86,6 +86,31 @@ export const registerToken = async (req, res) => {
     res.json({ success: true, message: 'FCM Token registered successfully' });
   } catch (error) {
     console.error('Error registering FCM token:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Unregister FCM device token (on logout)
+// @route   DELETE /api/notifications/unregister-token
+// @access  Private
+export const unregisterToken = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { fcmToken } = req.body;
+
+    if (!fcmToken) {
+      return res.status(400).json({ success: false, message: 'FCM Token is required' });
+    }
+
+    // Only clear the token if it matches this device (prevent clearing another device's token)
+    await User.findOneAndUpdate(
+      { _id: userId, fcmToken },
+      { $unset: { fcmToken: '' } }
+    );
+
+    res.json({ success: true, message: 'FCM Token unregistered' });
+  } catch (error) {
+    console.error('Error unregistering FCM token:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };

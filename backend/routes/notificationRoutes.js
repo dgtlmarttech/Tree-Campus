@@ -1,5 +1,5 @@
-import express from 'express';
-import { getNotifications, markAsRead, markAllAsRead, registerToken } from '../controllers/notificationController.js';
+﻿import express from 'express';
+import { getNotifications, markAsRead, markAllAsRead, registerToken, unregisterToken } from '../controllers/notificationController.js';
 import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -10,5 +10,6 @@ router.get('/', getNotifications);
 router.post('/register-token', registerToken);
 router.put('/read-all', markAllAsRead);
 router.put('/:id/read', markAsRead);
+router.delete('/unregister-token', unregisterToken);
 
 export default router;

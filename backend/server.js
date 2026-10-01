@@ -1,4 +1,4 @@
-import 'dotenv/config';
+﻿import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -32,6 +32,7 @@ import zoomWebhooks from './routes/zoomWebhooks.js';
 import teacherApplicationRoutes from './routes/teacherApplicationRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import adminNotificationRoutes from './routes/adminNotificationRoutes.js';
+import dayNotificationRoutes from './routes/dayNotificationRoutes.js';
 
 import session from 'express-session';
 import passport from 'passport';
@@ -154,6 +155,7 @@ app.use('/api/contest', contestRoutes);
 app.use('/api/admin/contest', adminContestRoutes);
 app.use('/api/learning-journey', learningJourneyRoutes);
 app.use('/api/admin/notifications', adminNotificationRoutes);
+app.use('/api/admin/day-notifications', dayNotificationRoutes);
 
 // 404 handler
 app.use(notFound);
@@ -166,27 +168,27 @@ const PORT = process.env.PORT || 4000;
 
 const server = app.listen(PORT, () => {
   console.log(`
-╔══════════════════════════════════════════════════════╗
-║       Tree Campus Backend Server                     ║
-║                                                      ║
-║  ✅ Server running on port ${PORT}                       ║
-║  🌍 Environment: ${process.env.NODE_ENV || 'development'}                      ║
-║  🔗 API Base URL: http://localhost:${PORT}/api           ║
-║  ☁️  Using Cloudinary for media storage              ║
-║                                                      ║
-╚══════════════════════════════════════════════════════╝
+â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+â•‘       Tree Campus Backend Server                     â•‘
+â•‘                                                      â•‘
+â•‘  âœ… Server running on port ${PORT}                       â•‘
+â•‘  ðŸŒ Environment: ${process.env.NODE_ENV || 'development'}                      â•‘
+â•‘  ðŸ”— API Base URL: http://localhost:${PORT}/api           â•‘
+â•‘  â˜ï¸  Using Cloudinary for media storage              â•‘
+â•‘                                                      â•‘
+â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   `);
 });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
-  console.error('❌ Unhandled Rejection:', err);
+  console.error('âŒ Unhandled Rejection:', err);
   server.close(() => process.exit(1));
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
-  console.error('❌ Uncaught Exception:', err);
+  console.error('âŒ Uncaught Exception:', err);
   process.exit(1);
 });
 
