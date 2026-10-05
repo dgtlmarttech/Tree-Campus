@@ -1,4 +1,4 @@
-﻿import DayNotificationTemplate from '../models/DayNotificationTemplate.js';
+import DayNotificationTemplate from '../models/DayNotificationTemplate.js';
 import CourseLearningProgress from '../models/CourseLearningProgress.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
@@ -105,8 +105,23 @@ export const sendDayNotification = async (req, res) => {
     // 2. Find all users currently on this journey day
     //    currentDayIndex is 0-based, so Day 1 = index 0
     const dayIndex = dayNum - 1;
-    const progressDocs = await CourseLearningProgress.find({ currentDayIndex: dayIndex })
-      .populate('userId', 'fcmToken _id name');
+    const progressDocs = await CourseLearningProgress.aggregate([
+      {
+        $addFields: {
+          effectiveDayIndex: {
+            $max: [
+              { $ifNull: [ '$currentDayIndex', 0 ] },
+              { $subtract: [ { $ifNull: [ { $max: '$journeyDayStates.dayNumber' }, 1 ] }, 1 ] }
+            ]
+          }
+        }
+      },
+      {
+        $match: { effectiveDayIndex: dayIndex }
+      }
+    ]);
+    
+    await CourseLearningProgress.populate(progressDocs, { path: 'userId', select: 'fcmToken _id name' });
 
     const uniqueTokens = new Map(); // token → userId
     progressDocs.forEach(doc => {
@@ -215,8 +230,23 @@ export const sendBulkDayNotification = async (req, res) => {
         }
 
         const dayIndex = day - 1;
-        const progressDocs = await CourseLearningProgress.find({ currentDayIndex: dayIndex })
-          .populate('userId', 'fcmToken _id');
+        const progressDocs = await CourseLearningProgress.aggregate([
+          {
+            $addFields: {
+              effectiveDayIndex: {
+                $max: [
+                  { $ifNull: [ '$currentDayIndex', 0 ] },
+                  { $subtract: [ { $ifNull: [ { $max: '$journeyDayStates.dayNumber' }, 1 ] }, 1 ] }
+                ]
+              }
+            }
+          },
+          {
+            $match: { effectiveDayIndex: dayIndex }
+          }
+        ]);
+        
+        await CourseLearningProgress.populate(progressDocs, { path: 'userId', select: 'fcmToken _id' });
 
         const uniqueTokens = new Map();
         progressDocs.forEach(doc => {
@@ -291,11 +321,26 @@ export const getDayStats = async (req, res) => {
   try {
     const stats = await CourseLearningProgress.aggregate([
       {
-        $match: { currentDayIndex: { $gte: 0, $lte: 89 } }
+        $project: {
+          effectiveDayIndex: {
+            $max: [
+              { $ifNull: [ '$currentDayIndex', 0 ] },
+              {
+                $subtract: [
+                  { $ifNull: [ { $max: '$journeyDayStates.dayNumber' }, 1 ] },
+                  1
+                ]
+              }
+            ]
+          }
+        }
+      },
+      {
+        $match: { effectiveDayIndex: { $gte: 0, $lte: 89 } }
       },
       {
         $group: {
-          _id: '$currentDayIndex',
+          _id: '$effectiveDayIndex',
           userCount: { $sum: 1 }
         }
       },
