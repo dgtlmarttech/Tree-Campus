@@ -23,6 +23,7 @@ const AdminNotificationManagement = () => {
   const fetchHistory = async () => {
     try {
       const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/admin/notifications`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         withCredentials: true
       });
       if (data.success) {
@@ -67,6 +68,7 @@ const AdminNotificationManagement = () => {
       };
 
       const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/admin/notifications/send`, payload, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         withCredentials: true
       });
 
