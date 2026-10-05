@@ -18,7 +18,7 @@ if (serviceAccountPath) {
 }
 
 export const sendFCMNotification = async (tokens, title, body, data = {}) => {
-  if (!admin.apps.length) {
+  if (!admin.apps || !admin.apps.length) {
     console.warn('Firebase Admin not initialized, skipping notification.');
     return;
   }
