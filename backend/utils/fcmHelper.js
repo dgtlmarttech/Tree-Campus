@@ -1,4 +1,5 @@
-import admin from 'firebase-admin';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getMessaging } from 'firebase-admin/messaging';
 import path from 'path';
 
 // Initialize Firebase Admin SDK
@@ -6,8 +7,8 @@ const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
 
 if (serviceAccountPath) {
   try {
-    admin.initializeApp({
-      credential: admin.credential.cert(path.resolve(serviceAccountPath))
+    initializeApp({
+      credential: cert(path.resolve(serviceAccountPath))
     });
     console.log('Firebase Admin initialized successfully.');
   } catch (error) {
@@ -18,7 +19,8 @@ if (serviceAccountPath) {
 }
 
 export const sendFCMNotification = async (tokens, title, body, data = {}) => {
-  if (!admin.apps || !admin.apps.length) {
+  const apps = getApps();
+  if (!apps || !apps.length) {
     console.warn('Firebase Admin not initialized, skipping notification.');
     return;
   }
@@ -36,7 +38,7 @@ export const sendFCMNotification = async (tokens, title, body, data = {}) => {
   };
 
   try {
-    const response = await admin.messaging().sendMulticast(message);
+    const response = await getMessaging().sendEachForMulticast(message);
     console.log(response.successCount + ' messages were sent successfully');
     if (response.failureCount > 0) {
       response.responses.forEach((resp, idx) => {
