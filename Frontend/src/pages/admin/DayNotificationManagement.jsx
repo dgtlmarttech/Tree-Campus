@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import Sidebar from '../../components/Layout/Sidebar';
@@ -29,7 +29,7 @@ const DayNotificationManagement = () => {
 
   const fetchStats = useCallback(async () => {
     try {
-      const { data } = await axios.get(`${API}/api/admin/day-notifications/stats`, { withCredentials: true });
+      const { data } = await axios.get(`${API}/admin/day-notifications/stats`, { withCredentials: true });
       if (data.success) setStats(data.stats);
     } catch {}
   }, []);
@@ -37,7 +37,7 @@ const DayNotificationManagement = () => {
   const fetchTemplates = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await axios.get(`${API}/api/admin/day-notifications`, { withCredentials: true });
+      const { data } = await axios.get(`${API}/admin/day-notifications`, { withCredentials: true });
       if (data.success) setTemplates(data.templates);
     } catch (err) {
       toast.error('Failed to fetch templates');
@@ -55,7 +55,7 @@ const DayNotificationManagement = () => {
     setSelectedDay(day);
     setEditingId(null);
     try {
-      const { data } = await axios.get(`${API}/api/admin/day-notifications/${day}`, { withCredentials: true });
+      const { data } = await axios.get(`${API}/admin/day-notifications/${day}`, { withCredentials: true });
       if (data.success) setDayTemplates(data.templates);
     } catch {
       toast.error('Failed to load day templates');
@@ -69,7 +69,7 @@ const DayNotificationManagement = () => {
 
   const saveEdit = async (id) => {
     try {
-      const { data } = await axios.put(`${API}/api/admin/day-notifications/${id}`, editForm, { withCredentials: true });
+      const { data } = await axios.put(`${API}/admin/day-notifications/${id}`, editForm, { withCredentials: true });
       if (data.success) {
         toast.success('Template saved!');
         setEditingId(null);
@@ -85,7 +85,7 @@ const DayNotificationManagement = () => {
     const key = `${day}-${notificationType}`;
     setSending(prev => ({ ...prev, [key]: true }));
     try {
-      const { data } = await axios.post(`${API}/api/admin/day-notifications/send`, { day, notificationType }, { withCredentials: true });
+      const { data } = await axios.post(`${API}/admin/day-notifications/send`, { day, notificationType }, { withCredentials: true });
       if (data.success) {
         toast.success(`Sent to ${data.recipientCount} users (${data.successCount} success, ${data.failureCount} failed)`);
         fetchStats();
@@ -103,7 +103,7 @@ const DayNotificationManagement = () => {
     if (!bulkType || !bulkStart || !bulkEnd) return toast.error('Fill all bulk send fields');
     setBulkSending(true);
     try {
-      const { data } = await axios.post(`${API}/api/admin/day-notifications/send-bulk`, {
+      const { data } = await axios.post(`${API}/admin/day-notifications/send-bulk`, {
         startDay: bulkStart, endDay: bulkEnd, notificationType: bulkType
       }, { withCredentials: true });
       if (data.success) {

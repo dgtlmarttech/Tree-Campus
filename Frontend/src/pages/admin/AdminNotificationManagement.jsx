@@ -22,7 +22,7 @@ const AdminNotificationManagement = () => {
 
   const fetchHistory = async () => {
     try {
-      const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/notifications`, {
+      const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/admin/notifications`, {
         withCredentials: true
       });
       if (data.success) {
@@ -66,7 +66,7 @@ const AdminNotificationManagement = () => {
         userIds: parsedUserIds
       };
 
-      const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/admin/notifications/send`, payload, {
+      const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/admin/notifications/send`, payload, {
         withCredentials: true
       });
 
