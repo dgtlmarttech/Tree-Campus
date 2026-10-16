@@ -1,7 +1,8 @@
 import User from '../models/User.js';
 import { generateTokens } from '../utils/generateToken.js';
 import { verifyRefreshToken } from '../middleware/auth.js';
-import * as messageCentral from '../utils/messageCentral.js';
+// import * as messageCentral from '../utils/messageCentral.js'; // Commented out - replaced by Black SMS
+import { sendBlackSMSOTP } from '../utils/blackSMS.js';
 import { sendOTPEmail } from '../utils/sendEmail.js';
 import bcrypt from 'bcryptjs';
 import fs from 'fs';
@@ -59,8 +60,10 @@ const signup = async (req, res, next) => {
     let otpSent = true;
     let otpError = null;
 
-    // No local OTP generation here - rely on Message Central's own code
+    // Generate 6-digit OTP locally for Black SMS
+    const generatedOtp = user.generateOTP();
 
+    /* --- MESSAGE CENTRAL (COMMENTED OUT) ---
     try {
       const mcResponse = await messageCentral.sendSMSOTP(phone);
       if (mcResponse.success) {
@@ -69,6 +72,17 @@ const signup = async (req, res, next) => {
       await user.save();
     } catch (err) {
       console.error('❌ Failed to send SMS OTP during signup:', err.message);
+      otpSent = false;
+      otpError = err.message;
+    }
+    ---------------------------------------- */
+
+    // --- BLACK SMS GATEWAY ---
+    try {
+      await sendBlackSMSOTP(phone, generatedOtp);
+      await user.save();
+    } catch (err) {
+      console.error('❌ Failed to send SMS OTP via Black SMS during signup:', err.message);
       otpSent = false;
       otpError = err.message;
     }
@@ -106,11 +120,20 @@ const verifyOTP = async (req, res, next) => {
       console.log(`ℹ️ [DEBUG] Local OTP Expired: Expiry=${expiry}, Now=${now}. Proceeding to Message Central validation.`);
     }
     
-    // SMS Verification (Rely solely on Message Central)
+    /* --- MESSAGE CENTRAL (COMMENTED OUT) ---
     try {
       await messageCentral.validateOTP(user.verificationId, otp);
     } catch (err) {
       return res.status(400).json({ success: false, message: err.message || 'Invalid OTP' });
+    }
+    ---------------------------------------- */
+
+    // --- BLACK SMS OTP VALIDATION ---
+    if (!user.otp || user.otp !== otp) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+    }
+    if (user.otpExpiry && new Date(user.otpExpiry).getTime() < Date.now()) {
+      return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
     }
 
     user.isVerified = true;
@@ -182,6 +205,7 @@ const resendOTP = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Phone number not found for this user. Please contact support.' });
     }
 
+    /* --- MESSAGE CENTRAL (COMMENTED OUT) ---
     try {
       const mcResponse = await messageCentral.sendSMSOTP(user.phone);
       if (mcResponse.success) {
@@ -202,6 +226,20 @@ const resendOTP = async (req, res, next) => {
       return res.status(500).json({ 
         success: false, 
         message: err.message || 'SMS service error. Please try again later.' 
+      });
+    }
+    ---------------------------------------- */
+
+    // --- BLACK SMS RESEND OTP ---
+    try {
+      const generatedOtp = user.generateOTP();
+      await sendBlackSMSOTP(user.phone, generatedOtp);
+      await user.save();
+    } catch (err) {
+      console.error('❌ Failed to resend SMS OTP via Black SMS:', err.message);
+      return res.status(500).json({ 
+        success: false, 
+        message: err.message || 'Failed to resend SMS OTP. Please check your phone number.' 
       });
     }
 
@@ -391,8 +429,10 @@ const forgotPassword = async (req, res, next) => {
       }
     }
     
-    // No local OTP needed for SMS Forgot Password
+    // Generate 6-digit OTP locally for Black SMS
+    const generatedOtp = user.generateOTP();
 
+    /* --- MESSAGE CENTRAL (COMMENTED OUT) ---
     try {
       const mcResponse = await messageCentral.sendSMSOTP(targetPhone);
       if (mcResponse.success) {
@@ -410,6 +450,19 @@ const forgotPassword = async (req, res, next) => {
         });
       }
 
+      return res.status(500).json({
+        success: false,
+        message: err.message || 'Failed to send SMS OTP. Please check your phone number.',
+      });
+    }
+    ---------------------------------------- */
+
+    // --- BLACK SMS FORGOT PASSWORD ---
+    try {
+      await sendBlackSMSOTP(targetPhone, generatedOtp);
+      await user.save();
+    } catch (err) {
+      console.error('❌ Failed to send SMS OTP via Black SMS for password reset:', err.message);
       return res.status(500).json({
         success: false,
         message: err.message || 'Failed to send SMS OTP. Please check your phone number.',
@@ -443,10 +496,20 @@ const resetPassword = async (req, res, next) => {
       console.log(`ℹ️ [DEBUG] ResetPwd OTP Expired local compare: Expiry=${expiry}, Now=${now}.`);
     }
 
+    /* --- MESSAGE CENTRAL (COMMENTED OUT) ---
     try {
       await messageCentral.validateOTP(user.verificationId, otp);
     } catch (err) {
       return res.status(400).json({ success: false, message: err.message || 'Invalid OTP' });
+    }
+    ---------------------------------------- */
+
+    // --- BLACK SMS RESET PASSWORD VALIDATION ---
+    if (!user.otp || user.otp !== otp) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+    }
+    if (user.otpExpiry && new Date(user.otpExpiry).getTime() < Date.now()) {
+      return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
     }
 
     // Save the provided phone number permanently if their old one was missing/placeholder
@@ -586,14 +649,27 @@ const completeGoogleProfile = async (req, res, next) => {
     user.password = password;
     user.isVerified = false;
 
-    // No local OTP needed for Google Profile SMS
     let otpSent = true;
     let otpError = null;
 
+    // Generate OTP locally for Black SMS
+    const generatedOtp = user.generateOTP();
+
+    /* --- MESSAGE CENTRAL (COMMENTED OUT) ---
     try {
       const mcResponse = await messageCentral.sendSMSOTP(phone);
       if (mcResponse.success) user.verificationId = mcResponse.verificationId;
     } catch (err) {
+      otpSent = false;
+      otpError = err.message;
+    }
+    ---------------------------------------- */
+
+    // --- BLACK SMS GOOGLE PROFILE OTP ---
+    try {
+      await sendBlackSMSOTP(phone, generatedOtp);
+    } catch (err) {
+      console.error('❌ Failed to send SMS OTP via Black SMS for Google profile:', err.message);
       otpSent = false;
       otpError = err.message;
     }
@@ -665,6 +741,10 @@ const requestLoginOTP = async (req, res, next) => {
       });
     }
 
+    // Generate OTP locally for Black SMS
+    const generatedOtp = user.generateOTP();
+
+    /* --- MESSAGE CENTRAL (COMMENTED OUT) ---
     try {
       const mcResponse = await messageCentral.sendSMSOTP(phone);
       if (mcResponse.success) {
@@ -673,6 +753,19 @@ const requestLoginOTP = async (req, res, next) => {
       await user.save();
     } catch (err) {
       console.error('❌ Failed to send SMS login OTP:', err.message);
+      return res.status(500).json({
+        success: false,
+        message: err.message || 'Failed to send SMS OTP. Please try again.',
+      });
+    }
+    ---------------------------------------- */
+
+    // --- BLACK SMS LOGIN OTP ---
+    try {
+      await sendBlackSMSOTP(phone, generatedOtp);
+      await user.save();
+    } catch (err) {
+      console.error('❌ Failed to send SMS login OTP via Black SMS:', err.message);
       return res.status(500).json({
         success: false,
         message: err.message || 'Failed to send SMS OTP. Please try again.',
@@ -719,11 +812,20 @@ const loginWithOTP = async (req, res, next) => {
 
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    // SMS Verification (Rely solely on Message Central)
+    /* --- MESSAGE CENTRAL (COMMENTED OUT) ---
     try {
       await messageCentral.validateOTP(user.verificationId, otp);
     } catch (err) {
       return res.status(400).json({ success: false, message: err.message || 'Invalid SMS OTP' });
+    }
+    ---------------------------------------- */
+
+    // --- BLACK SMS LOGIN OTP VALIDATION ---
+    if (!user.otp || user.otp !== otp) {
+      return res.status(400).json({ success: false, message: 'Invalid SMS OTP' });
+    }
+    if (user.otpExpiry && new Date(user.otpExpiry).getTime() < Date.now()) {
+      return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
     }
 
     // Mark as verified
@@ -909,14 +1011,20 @@ const requestPhoneSetupOTP = async (req, res, next) => {
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     try {
-      user.generateOTP();
+      const generatedOtp = user.generateOTP();
+
+      /* --- MESSAGE CENTRAL (COMMENTED OUT) ---
       const mcResponse = await messageCentral.sendSMSOTP(phone);
       if (mcResponse.success) {
         user.verificationId = mcResponse.verificationId;
       }
+      ---------------------------------------- */
+
+      // --- BLACK SMS SETUP PHONE OTP ---
+      await sendBlackSMSOTP(phone, generatedOtp);
       await user.save();
     } catch (err) {
-      console.error('❌ Failed to send setup SMS OTP:', err.message);
+      console.error('❌ Failed to send setup SMS OTP via Black SMS:', err.message);
       return res.status(500).json({ success: false, message: err.message || 'Failed to send SMS OTP.' });
     }
 
@@ -947,15 +1055,18 @@ const setupPhone = async (req, res, next) => {
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     // Verify OTP
-    const isLocalValid = user.otp && user.otp === otp && user.otpExpiry > Date.now();
+    const isLocalValid = user.otp && user.otp === otp && new Date(user.otpExpiry).getTime() > Date.now();
     if (isLocalValid) {
       console.log(`✅ Local OTP valid for phone setup`);
     } else {
+      /* --- MESSAGE CENTRAL (COMMENTED OUT) ---
       try {
         await messageCentral.validateOTP(user.verificationId, otp);
       } catch (err) {
         return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
       }
+      ---------------------------------------- */
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
     }
 
     // Update phone + password

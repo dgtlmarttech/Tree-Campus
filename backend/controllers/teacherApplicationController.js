@@ -1,7 +1,8 @@
 import { Readable } from 'stream';
 import cloudinary from '../config/cloudinary.js';
 import TeacherApplication from '../models/TeacherApplication.js';
-import * as messageCentral from '../utils/messageCentral.js';
+// import * as messageCentral from '../utils/messageCentral.js'; // Commented out - replaced by Black SMS
+import { sendBlackSMSOTP } from '../utils/blackSMS.js';
 import {
   sendTeacherApplicationConfirmation,
   sendTeacherStatusUpdate
@@ -124,11 +125,16 @@ export const applyTeacher = async (req, res, next) => {
 
     console.log(`📱 Triggering SMS OTP for phone: ${phone} via Message Central...`);
 
-    // 4. Trigger Message Central OTP
+    // 4. Trigger Black SMS OTP
     let otpSent = true;
     let verificationId = '';
     let otpError = null;
 
+    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    application.otp = generatedOtp;
+    application.otpExpiry = Date.now() + 15 * 60 * 1000; // 15 mins
+
+    /* --- MESSAGE CENTRAL (COMMENTED OUT) ---
     try {
       const mcResponse = await messageCentral.sendSMSOTP(phone);
       if (mcResponse && mcResponse.success) {
@@ -138,6 +144,16 @@ export const applyTeacher = async (req, res, next) => {
       }
     } catch (err) {
       console.error('❌ Message Central OTP Trigger Error:', err.message);
+      otpSent = false;
+      otpError = err.message;
+    }
+    ---------------------------------------- */
+
+    // --- BLACK SMS INTEGRATION ---
+    try {
+      await sendBlackSMSOTP(phone, generatedOtp);
+    } catch (err) {
+      console.error('❌ Black SMS OTP Trigger Error:', err.message);
       otpSent = false;
       otpError = err.message;
     }
@@ -186,7 +202,7 @@ export const verifyTeacherOTP = async (req, res, next) => {
       });
     }
 
-    const application = await TeacherApplication.findById(applicationId).select('+verificationId');
+    const application = await TeacherApplication.findById(applicationId).select('+verificationId +otp +otpExpiry');
 
     if (!application) {
       return res.status(404).json({
@@ -202,8 +218,9 @@ export const verifyTeacherOTP = async (req, res, next) => {
       });
     }
 
-    console.log(`🔍 Validating OTP: ${otp} for VerificationId: ${application.verificationId}...`);
+    console.log(`🔍 Validating OTP: ${otp} for Application: ${applicationId}...`);
 
+    /* --- MESSAGE CENTRAL (COMMENTED OUT) ---
     try {
       await messageCentral.validateOTP(application.verificationId, otp);
     } catch (err) {
@@ -213,9 +230,26 @@ export const verifyTeacherOTP = async (req, res, next) => {
         message: err.message || 'Invalid or expired OTP. Please try again.'
       });
     }
+    ---------------------------------------- */
+
+    // --- BLACK SMS OTP VALIDATION ---
+    if (!application.otp || application.otp !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid OTP. Please enter the correct code.'
+      });
+    }
+    if (application.otpExpiry && new Date(application.otpExpiry).getTime() < Date.now()) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP has expired. Please request a new code.'
+      });
+    }
 
     // OTP is valid! Mark as verified
     application.isPhoneVerified = true;
+    application.otp = undefined;
+    application.otpExpiry = undefined;
     application.verificationId = undefined; // Clear the verificationId
     await application.save();
 
@@ -268,6 +302,7 @@ export const resendTeacherOTP = async (req, res, next) => {
 
     console.log(`🔄 Resending OTP to ${application.phone}...`);
 
+    /* --- MESSAGE CENTRAL (COMMENTED OUT) ---
     const mcResponse = await messageCentral.sendSMSOTP(application.phone);
 
     if (mcResponse && mcResponse.success) {
@@ -279,6 +314,26 @@ export const resendTeacherOTP = async (req, res, next) => {
       });
     } else {
       throw new Error('Failed to send resend trigger.');
+    }
+    ---------------------------------------- */
+
+    // --- BLACK SMS RESEND OTP ---
+    try {
+      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      application.otp = generatedOtp;
+      application.otpExpiry = Date.now() + 15 * 60 * 1000;
+      await sendBlackSMSOTP(application.phone, generatedOtp);
+      await application.save();
+      return res.status(200).json({
+        success: true,
+        message: 'OTP resent successfully.'
+      });
+    } catch (err) {
+      console.error('❌ Black SMS resend error:', err.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to resend OTP via Black SMS.'
+      });
     }
 
   } catch (error) {

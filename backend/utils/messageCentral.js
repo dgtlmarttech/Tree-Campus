@@ -1,3 +1,8 @@
+/**
+ * NOTE: Message Central OTP is currently inactive / commented out.
+ * SMS OTP sending and validation has been switched to Black SMS (utils/blackSMS.js).
+ * Kept intact as requested for reference and future rollback.
+ */
 import fetch from 'node-fetch';
 
 const CUSTOMER_ID = (process.env.MESSAGE_CENTRAL_CUSTOMER_ID || '').trim();
