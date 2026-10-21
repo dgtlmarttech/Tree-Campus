@@ -1,11 +1,9 @@
   import React, { useState, useEffect } from 'react';
-  import axios from 'axios';
+  import api from '../../services/api';
   import { FiSearch, FiEye, FiCheck, FiX, FiRefreshCw, FiSettings, FiTrash2 } from 'react-icons/fi';
   import DashboardLayout from '../../components/Layout/DashboardLayout';
   import Modal from '../../components/common/Modal';
   import toast from 'react-hot-toast';
-
-  const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   const SchoolRegistrationManagement = () => {
     const [schools, setSchools] = useState([]);
@@ -27,7 +25,7 @@
     const fetchSchools = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`${API_BASE_URL}/registerSchool`);
+        const response = await api.get('/registerschool');
         setSchools(response.data.data || []);
         setLastRefresh(new Date());
       } catch (error) {
@@ -39,7 +37,7 @@
 
     const handleStatusUpdate = async (id, status) => {
       try {
-        await axios.patch(`${API_BASE_URL}/registerSchool/${id}/status`, { status });
+        await api.patch(`/registerschool/${id}/status`, { status });
         await fetchSchools();
         setConfirmModal(null);
         toast.success(`Status updated to ${status} successfully!`);
@@ -51,7 +49,7 @@
 
     const handleDelete = async (id) => {
       try {
-        await axios.delete(`${API_BASE_URL}/registerSchool/${id}`);
+        await api.delete(`/registerschool/${id}`);
         await fetchSchools();
         setConfirmModal(null);
         toast.success('School registration deleted successfully!');

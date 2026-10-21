@@ -5,7 +5,9 @@ import {
   updateStudent, 
   deleteStudent, 
   getStudentDashboard,
-  exportStudents 
+  exportStudents,
+  sendStudentEnrollmentNudge,
+  sendBulkEnrollmentNudge
 } from '../controllers/studentController.js';
 import { protect } from '../middleware/auth.js';
 import { adminOnly } from '../middleware/adminMiddleware.js';
@@ -19,6 +21,8 @@ router.get('/dashboard', protect, getStudentDashboard);
 router.use(protect, adminOnly);
 
 router.get('/export', exportStudents);
+router.post('/bulk-nudge', sendBulkEnrollmentNudge);
+router.post('/:id/nudge', sendStudentEnrollmentNudge);
 
 router.route('/')
   .get(getStudents);

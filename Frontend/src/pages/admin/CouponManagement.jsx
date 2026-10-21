@@ -16,6 +16,8 @@ export default function CouponManagement() {
   const [filter, setFilter] = useState('all'); // all, active, used
   const [search, setSearch] = useState('');
   const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [generateCount, setGenerateCount] = useState(1);
+  const [generating, setGenerating] = useState(false);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [uploadMode, setUploadMode] = useState('file'); // 'file' or 'paste'
   const [pastedText, setPastedText] = useState('');

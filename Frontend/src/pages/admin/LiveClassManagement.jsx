@@ -2,7 +2,7 @@
   import DashboardLayout from '../../components/Layout/DashboardLayout';
   import Modal from '../../components/common/Modal';
   import api from '../../services/api';
-  import { FiPlus, FiTrash2, FiExternalLink, FiClock, FiCalendar, FiUser, FiVideo, FiX, FiEdit, FiCopy, FiCheckCircle } from 'react-icons/fi';
+  import { FiPlus, FiTrash2, FiExternalLink, FiClock, FiCalendar, FiUser, FiVideo, FiX, FiEdit, FiCopy, FiCheckCircle, FiMail } from 'react-icons/fi';
   import { format } from 'date-fns';
   import toast from 'react-hot-toast';
 
@@ -28,6 +28,7 @@
     });
     const [editingId, setEditingId] = useState(null);
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [broadcasting, setBroadcasting] = useState(false);
 
     useEffect(() => {
       fetchLiveClasses();
@@ -201,6 +202,33 @@
       }
     };
 
+    const handleSendEmailNotification = async (liveClass) => {
+      try {
+        toast.loading(`Sending 3 daily live classes schedule notification...`, { id: 'live-email' });
+        const res = await api.post(`/live-classes/${liveClass._id}/notify-email`);
+        toast.success(res.data.message || 'Email notifications sent!', { id: 'live-email' });
+        fetchLiveClasses();
+      } catch (error) {
+        toast.error(error.response?.data?.message || 'Failed to send live class email', { id: 'live-email' });
+      }
+    };
+
+    const handleBroadcastLiveClasses = async () => {
+      if (!window.confirm('Broadcast the 3 Daily Live Zoom Classes schedule email to all students registered in the last 30 days?')) {
+        return;
+      }
+      setBroadcasting(true);
+      try {
+        toast.loading('Broadcasting 3 Daily Live Classes schedule...', { id: 'broadcast-live' });
+        const res = await api.post('/live-classes/broadcast-schedule');
+        toast.success(res.data.message || 'Broadcast completed successfully!', { id: 'broadcast-live' });
+      } catch (error) {
+        toast.error(error.response?.data?.message || 'Failed to broadcast live classes email', { id: 'broadcast-live' });
+      } finally {
+        setBroadcasting(false);
+      }
+    };
+
     const handleCopyLink = (link) => {
       navigator.clipboard.writeText(link);
       toast.success('Join link copied to clipboard!');
@@ -263,13 +291,24 @@
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Live Class Management</h1>
               <p className="text-gray-600">Schedule and manage live sessions</p>
             </div>
-            <button 
-              className="mt-4 lg:mt-0 flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors w-full lg:w-auto justify-center"
-              onClick={() => setShowModal(true)}
-            >
-              <FiPlus className="w-4 h-4" />
-              <span>Schedule Live Class</span>
-            </button>
+            <div className="mt-4 lg:mt-0 flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+              <button 
+                className="flex items-center space-x-2 bg-emerald-600 text-white px-5 py-3 rounded-lg hover:bg-emerald-700 transition-colors justify-center shadow-sm disabled:opacity-50"
+                onClick={handleBroadcastLiveClasses}
+                disabled={broadcasting}
+                title="Send 3 Daily Live Zoom Classes schedule email to all students registered in last 30 days"
+              >
+                <FiMail className="w-4 h-4" />
+                <span>{broadcasting ? 'Broadcasting...' : 'Broadcast Daily Classes Email'}</span>
+              </button>
+              <button 
+                className="flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors justify-center"
+                onClick={() => setShowModal(true)}
+              >
+                <FiPlus className="w-4 h-4" />
+                <span>Schedule Live Class</span>
+              </button>
+            </div>
           </div>
 
           {/* Stats Overview */}
@@ -415,6 +454,17 @@
                         onClick={() => handleEdit(liveClass)}
                       >
                         <FiEdit className="w-4 h-4" />
+                      </button>
+                      <button 
+                        className={`p-2 rounded-lg transition-colors ${
+                          liveClass.emailNotificationSent 
+                            ? 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100' 
+                            : 'text-amber-600 hover:text-amber-700 hover:bg-amber-50'
+                        }`}
+                        onClick={() => handleSendEmailNotification(liveClass)}
+                        title={liveClass.emailNotificationSent ? "Email Notification Sent (Click to re-send)" : "Send Live Class Email Notification"}
+                      >
+                        <FiMail className="w-4 h-4" />
                       </button>
                       <button 
                         className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"

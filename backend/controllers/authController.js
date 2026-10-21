@@ -4,6 +4,7 @@ import { verifyRefreshToken } from '../middleware/auth.js';
 // import * as messageCentral from '../utils/messageCentral.js'; // Commented out - replaced by Black SMS
 import { sendBlackSMSOTP } from '../utils/blackSMS.js';
 import { sendOTPEmail } from '../utils/sendEmail.js';
+import { sendWelcomeEmail } from '../utils/zeptoEmail.js';
 import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
@@ -142,6 +143,13 @@ const verifyOTP = async (req, res, next) => {
     user.otpExpiry = undefined;
     user.verificationId = undefined;
     await user.save();
+
+    // Send Welcome Email asynchronously via ZeptoMail (App links only)
+    if (user.email) {
+      sendWelcomeEmail(user.email, user.name).catch((err) => {
+        console.error('⚠️ [Auth] Failed to send welcome email:', err.message);
+      });
+    }
 
     const tokens = generateTokens(user._id);
 

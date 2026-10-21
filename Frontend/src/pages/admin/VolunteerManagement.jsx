@@ -1,11 +1,9 @@
   import React, { useState, useEffect } from 'react';
-  import axios from 'axios';
+  import api from '../../services/api';
   import { FiSearch, FiEye, FiCheck, FiX, FiRefreshCw, FiUsers, FiTrash2 } from 'react-icons/fi';
   import DashboardLayout from '../../components/Layout/DashboardLayout';
   import Modal from '../../components/common/Modal';
   import toast from 'react-hot-toast';
-
-  const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   const VolunteerManagement = () => {
     const [volunteers, setVolunteers] = useState([]);
@@ -27,20 +25,15 @@
     const fetchVolunteers = async () => {
       try {
         setLoading(true);
-        console.log('Fetching volunteers from:', `${API_BASE_URL}/volunteer`);
-        const response = await axios.get(`${API_BASE_URL}/volunteer`);
-        console.log('Volunteers response:', response);
-        console.log('Volunteers data:', response.data);
+        const response = await api.get('/volunteer');
         
         // Handle different response formats
         const volunteersData = response.data.data || response.data.volunteers || response.data || [];
-        console.log('Extracted volunteers:', volunteersData);
         
         setVolunteers(volunteersData);
         setLastRefresh(new Date());
       } catch (error) {
         console.error('Error fetching volunteers:', error);
-        console.error('Error response:', error.response);
       } finally {
         setLoading(false);
       }
@@ -48,7 +41,7 @@
 
     const handleStatusUpdate = async (id, status) => {
       try {
-        await axios.patch(`${API_BASE_URL}/volunteer/${id}/status`, { status });
+        await api.patch(`/volunteer/${id}/status`, { status });
         await fetchVolunteers();
         setConfirmModal(null);
         toast.success(`Status updated to ${status} successfully!`);
@@ -60,7 +53,7 @@
 
     const handleDelete = async (id) => {
       try {
-        await axios.delete(`${API_BASE_URL}/volunteer/${id}`);
+        await api.delete(`/volunteer/${id}`);
         await fetchVolunteers();
         setConfirmModal(null);
         toast.success('Volunteer application deleted successfully!');

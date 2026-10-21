@@ -4,6 +4,8 @@ import Notification from '../models/Notification.js';
 import { sendFCMNotification } from '../utils/fcmHelper.js';
 import { zoomApiRequest, generateSDKSignature } from '../utils/zoomAuth.js';
 import { v4 as uuidv4 } from 'uuid';
+import Enrollment from '../models/Enrollment.js';
+import { sendDailyLiveClassesEmail } from '../utils/zeptoEmail.js';
 
 const MAX_CONCURRENT_MEETINGS = 5;
 
@@ -462,5 +464,135 @@ async function updateMeetingStatuses() {
 
 // Run status update every minute
 setInterval(updateMeetingStatuses, 60000);
+
+// @desc    Send email notification for an upcoming live class to students
+// @route   POST /api/live-classes/:id/notify-email
+// @access  Private/Admin
+export const notifyLiveClassStudents = async (req, res) => {
+  try {
+    const liveClass = await LiveClass.findById(req.params.id);
+    if (!liveClass) {
+      return res.status(404).json({ success: false, message: 'Live class not found' });
+    }
+
+    let targetStudents = [];
+    if (liveClass.courseId) {
+      const enrolledUserIds = await Enrollment.find({ course: liveClass.courseId }).distinct('user');
+      targetStudents = await User.find({
+        role: 'student',
+        isVerified: true,
+        email: { $exists: true, $ne: '' },
+        $or: [
+          { _id: { $in: enrolledUserIds } },
+          { 'enrolledCourses.courseId': liveClass.courseId }
+        ]
+      }).select('name email');
+    }
+
+    if (targetStudents.length === 0) {
+      targetStudents = await User.find({
+        role: 'student',
+        isVerified: true,
+        email: { $exists: true, $ne: '' }
+      }).limit(100).select('name email');
+    }
+
+    if (targetStudents.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'No eligible students with email found for this class',
+        sentCount: 0
+      });
+    }
+
+    let sentCount = 0;
+    const errors = [];
+
+    for (const student of targetStudents) {
+      try {
+        await sendDailyLiveClassesEmail(student.email, student.name);
+        sentCount++;
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      } catch (err) {
+        errors.push({ studentId: student._id, email: student.email, error: err.message });
+      }
+    }
+
+    liveClass.emailNotificationSent = true;
+    liveClass.emailNotificationSentAt = new Date();
+    await liveClass.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully sent 3 daily live classes schedule email to ${sentCount} students`,
+      sentCount,
+      errorsCount: errors.length
+    });
+  } catch (error) {
+    console.error('Error in notifyLiveClassStudents:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Broadcast 3 Daily Live Classes Announcement to students registered in the last 30 days
+// @route   POST /api/live-classes/broadcast-schedule
+// @access  Private/Admin
+export const broadcastLiveClassesSchedule = async (req, res) => {
+  try {
+    const { dryRun = false } = req.body;
+    const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    // Target all students registered in the last 30 days (including those who received it previously)
+    const candidates = await User.find({
+      role: 'student',
+      isVerified: true,
+      email: { $exists: true, $ne: '' },
+      createdAt: { $gte: oneMonthAgo }
+    }).select('name email liveClassNotificationCount');
+
+    if (dryRun) {
+      return res.status(200).json({
+        success: true,
+        dryRun: true,
+        eligibleCount: candidates.length,
+        message: `Found ${candidates.length} students registered in the last 30 days eligible for the 3 daily live classes announcement.`
+      });
+    }
+
+    if (candidates.length === 0) {
+      return res.status(200).json({
+        success: true,
+        sentCount: 0,
+        message: 'No eligible students found in the 30-day window to send the announcement to.'
+      });
+    }
+
+    let sentCount = 0;
+    const errors = [];
+
+    for (const student of candidates) {
+      try {
+        await sendDailyLiveClassesEmail(student.email, student.name);
+        student.liveClassNotificationSentAt = new Date();
+        student.liveClassNotificationCount = (student.liveClassNotificationCount || 0) + 1;
+        await student.save();
+        sentCount++;
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      } catch (err) {
+        errors.push({ studentId: student._id, email: student.email, error: err.message });
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      totalEligible: candidates.length,
+      sentCount,
+      errorsCount: errors.length,
+      message: `Successfully broadcasted 3 daily live classes email to ${sentCount} students.`
+    });
+  } catch (error) {
+    console.error('Error in broadcastLiveClassesSchedule:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 

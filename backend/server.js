@@ -1,4 +1,4 @@
-﻿import 'dotenv/config';
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -38,12 +38,16 @@ import session from 'express-session';
 import passport from 'passport';
 import configurePassport from './config/passportConfig.js';
 import MongoStore from 'connect-mongo';
+import { initCronJobs } from './services/cronService.js';
 
 // Initialize Express app
 const app = express();
 
 // Connect to MongoDB
 connectDB();
+
+// Initialize scheduled background jobs (e.g., Weekly Enrollment Nudge)
+initCronJobs();
 
 // Dynamic & robust CORS configuration (must be applied BEFORE routes)
 const allowedOrigins = [
@@ -69,7 +73,7 @@ const corsOptions = {
     if (isAllowed) {
       return callback(null, true);
     } else {
-      return callback(null, true);
+      return callback(new Error('Blocked by CORS policy: Origin not allowed'), false);
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

@@ -35,11 +35,6 @@ const Courses = () => {
     });
   }, []);
 
-  useEffect(() => {
-    fetchCourses();
-    fetchEnrolledCourses();
-  }, []);
-
   const fetchCourses = async () => {
     try {
       setLoading(true);
@@ -65,6 +60,11 @@ const Courses = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchCourses();
+    fetchEnrolledCourses();
+  }, []);
 
   useEffect(() => {
     filterCourses();

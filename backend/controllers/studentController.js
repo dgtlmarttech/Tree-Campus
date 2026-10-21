@@ -6,6 +6,7 @@ import Section from '../models/Section.js';
 import Certificate from '../models/Certificate.js';
 import LiveClass from '../models/LiveClass.js';
 import Enrollment from '../models/Enrollment.js';
+import { sendCourseEnrollmentNudgeEmail } from '../utils/zeptoEmail.js';
 
 // @desc    Get student dashboard analytics
 // @route   GET /api/students/dashboard
@@ -627,5 +628,104 @@ export const exportStudents = async (req, res) => {
       success: false,
       message: error.message
     });
+  }
+};
+
+// @desc    Send Course Enrollment Nudge email to a single student
+// @route   POST /api/students/:id/nudge
+// @access  Private/Admin
+export const sendStudentEnrollmentNudge = async (req, res) => {
+  try {
+    const student = await User.findById(req.params.id);
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+
+    if (!student.email) {
+      return res.status(400).json({ success: false, message: 'Student does not have an email address' });
+    }
+
+    await sendCourseEnrollmentNudgeEmail(student.email, student.name);
+
+    student.enrollmentNudgeSent = true;
+    student.enrollmentNudgeSentAt = new Date();
+    await student.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Enrollment nudge email sent successfully to ${student.email}`
+    });
+  } catch (error) {
+    console.error('Error sending student nudge:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Send Course Enrollment Nudge in bulk to unenrolled students
+// @route   POST /api/students/bulk-nudge
+// @access  Private/Admin
+export const sendBulkEnrollmentNudge = async (req, res) => {
+  try {
+    const limit = parseInt(req.body.limit, 10) || 50;
+
+    const enrolledUserIds = await Enrollment.find().distinct('user');
+
+    const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const sixDaysAgo = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000);
+
+    const targetStudents = await User.find({
+      role: 'student',
+      isVerified: true,
+      email: { $exists: true, $ne: '' },
+      createdAt: { $gte: oneMonthAgo },
+      _id: { $nin: enrolledUserIds },
+      $or: [
+        { enrolledCourses: { $exists: false } },
+        { enrolledCourses: { $size: 0 } }
+      ],
+      $and: [
+        {
+          $or: [
+            { enrollmentNudgeSent: { $ne: true } },
+            { enrollmentNudgeSentAt: { $exists: false } },
+            { enrollmentNudgeSentAt: { $lt: sixDaysAgo } }
+          ]
+        }
+      ]
+    }).limit(limit);
+
+    if (targetStudents.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'No unenrolled students pending for nudge email',
+        sentCount: 0
+      });
+    }
+
+    let sentCount = 0;
+    const errors = [];
+
+    for (const student of targetStudents) {
+      try {
+        await sendCourseEnrollmentNudgeEmail(student.email, student.name);
+        student.enrollmentNudgeSent = true;
+        student.enrollmentNudgeSentAt = new Date();
+        student.nudgeCount = (student.nudgeCount || 0) + 1;
+        await student.save();
+        sentCount++;
+      } catch (err) {
+        errors.push({ studentId: student._id, email: student.email, error: err.message });
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully sent enrollment nudge to ${sentCount} students`,
+      sentCount,
+      errorsCount: errors.length
+    });
+  } catch (error) {
+    console.error('Error in sendBulkEnrollmentNudge:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };

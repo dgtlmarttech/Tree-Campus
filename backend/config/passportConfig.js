@@ -1,6 +1,7 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import User from '../models/User.js';
+import { sendWelcomeEmail } from '../utils/zeptoEmail.js';
 
 const configurePassport = () => {
   if (process.env.GOOGLE_CLIENT_ID) {
@@ -47,6 +48,13 @@ const configurePassport = () => {
                   role: 'student',
                   platform: platform,
                 });
+
+                // Send Welcome Email asynchronously via ZeptoMail
+                if (user.email) {
+                  sendWelcomeEmail(user.email, user.name).catch((err) => {
+                    console.error('⚠️ [Auth] Failed to send welcome email for Google user:', err.message);
+                  });
+                }
               }
             }
 

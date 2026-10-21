@@ -106,6 +106,35 @@ const StudentAnalytics = () => {
     }
   };
 
+  const handleSendNudge = async (student) => {
+    if (!student.email) {
+      toast.error('Student does not have an email address');
+      return;
+    }
+    try {
+      toast.loading(`Sending enrollment nudge to ${student.name || 'student'}...`, { id: 'nudge-toast' });
+      await api.post(`/students/${student._id}/nudge`);
+      toast.success(`Enrollment nudge email sent to ${student.name || student.email}`, { id: 'nudge-toast' });
+      setStudents(prev => prev.map(s => s._id === student._id ? { ...s, enrollmentNudgeSent: true } : s));
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send nudge email', { id: 'nudge-toast' });
+    }
+  };
+
+  const handleBulkNudge = async () => {
+    if (!window.confirm('Send Course Enrollment Nudge email to all unenrolled students who have not been nudged yet?')) {
+      return;
+    }
+    try {
+      toast.loading('Sending bulk enrollment nudges...', { id: 'bulk-nudge-toast' });
+      const res = await api.post('/students/bulk-nudge', { limit: 50 });
+      toast.success(res.data.message || 'Bulk nudges processed', { id: 'bulk-nudge-toast' });
+      fetchStudents(currentPage);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send bulk nudges', { id: 'bulk-nudge-toast' });
+    }
+  };
+
   const handleExportStudents = async () => {
     try {
       toast.loading('Preparing student export...', { id: 'export-toast' });
@@ -329,8 +358,16 @@ const StudentAnalytics = () => {
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Student Board</h1>
             <p className="text-gray-600">Manage registered students and their progress</p>
           </div>
-          <div className="mt-4 lg:mt-0">
-            <button onClick={handleExportStudents} className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+          <div className="mt-4 lg:mt-0 flex items-center space-x-3">
+            <button 
+              onClick={handleBulkNudge} 
+              className="inline-flex items-center space-x-2 bg-amber-600 text-white px-5 py-3 rounded-lg hover:bg-amber-700 transition-colors shadow-sm text-sm font-medium"
+              title="Send enrollment encouragement email to unenrolled students"
+            >
+              <FiMail className="w-4 h-4" />
+              <span>Nudge Unenrolled</span>
+            </button>
+            <button onClick={handleExportStudents} className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm font-medium">
               Export Students
             </button>
           </div>
@@ -542,6 +579,19 @@ const StudentAnalytics = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-1">
+                        {(!student.enrolledCourses || student.enrolledCourses.length === 0) && (
+                          <button
+                            className={`p-2 rounded-lg transition-colors ${
+                              student.enrollmentNudgeSent
+                                ? 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                                : 'text-amber-600 hover:text-amber-900 hover:bg-amber-50'
+                            }`}
+                            onClick={() => handleSendNudge(student)}
+                            title={student.enrollmentNudgeSent ? "Enrollment Nudge Already Sent (Click to re-send)" : "Send Course Enrollment Nudge Email"}
+                          >
+                            <FiMail className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           className="text-emerald-600 hover:text-emerald-900 transition-colors p-2 hover:bg-emerald-50 rounded-lg"
                           onClick={() => handleViewStudent(student)}
@@ -634,6 +684,19 @@ const StudentAnalytics = () => {
                     <span>{new Date(student.createdAt).toLocaleDateString()}</span>
                   </div>
                   <div className="flex items-center space-x-1">
+                    {(!student.enrolledCourses || student.enrolledCourses.length === 0) && (
+                      <button
+                        className={`p-2 rounded-lg transition-colors ${
+                          student.enrollmentNudgeSent
+                            ? 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                            : 'text-amber-600 hover:text-amber-900 hover:bg-amber-50'
+                        }`}
+                        onClick={() => handleSendNudge(student)}
+                        title={student.enrollmentNudgeSent ? "Enrollment Nudge Already Sent (Click to re-send)" : "Send Course Enrollment Nudge Email"}
+                      >
+                        <FiMail className="w-4 h-4" />
+                      </button>
+                    )}
                     <button
                       className="text-emerald-600 hover:text-emerald-900 transition-colors p-2 hover:bg-emerald-50 rounded-lg"
                       onClick={() => handleViewStudent(student)}

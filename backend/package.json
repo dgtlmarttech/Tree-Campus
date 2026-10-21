@@ -43,6 +43,7 @@
     "multer": "^2.0.2",
     "multer-storage-cloudinary": "^4.0.0",
     "mysql2": "^3.18.1",
+    "node-cron": "^4.6.0",
     "node-fetch": "^2.7.0",
     "nodemailer": "^7.0.10",
     "nodemon": "^3.1.14",

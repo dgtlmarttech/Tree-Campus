@@ -70,6 +70,13 @@ const liveClassSchema = new mongoose.Schema({
   seriesId: {
     type: String,
     sparse: true
+  },
+  emailNotificationSent: {
+    type: Boolean,
+    default: false
+  },
+  emailNotificationSentAt: {
+    type: Date
   }
 }, {
   timestamps: true

@@ -2,6 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import { Readable } from 'stream';
+import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ const upload = multer({
   },
 });
 
-router.post('/file', upload.single('file'), (req, res) => {
+router.post('/file', protect, upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({
       success: false,

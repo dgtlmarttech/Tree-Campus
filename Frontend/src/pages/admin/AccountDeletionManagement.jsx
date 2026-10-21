@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 import { FiSearch, FiEye, FiCheck, FiX, FiRefreshCw, FiUserX, FiTrash2 } from 'react-icons/fi';
 import DashboardLayout from '../../components/Layout/DashboardLayout';
 import toast from 'react-hot-toast';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const AccountDeletionManagement = () => {
   const [deletions, setDeletions] = useState([]);
@@ -26,20 +24,15 @@ const AccountDeletionManagement = () => {
   const fetchDeletions = async () => {
     try {
       setLoading(true);
-      console.log('Fetching deletions from:', `${API_BASE_URL}/account-deletion-request/all`);
-      const response = await axios.get(`${API_BASE_URL}/account-deletion-request/all`);
-      console.log('Deletions response:', response);
-      console.log('Deletions data:', response.data);
+      const response = await api.get('/account-deletion-request/all');
       
       // Handle different response formats
       const deletionsData = response.data.data || response.data.requests || response.data || [];
-      console.log('Extracted deletions:', deletionsData);
       
       setDeletions(deletionsData);
       setLastRefresh(new Date());
     } catch (error) {
       console.error('Error fetching deletions:', error);
-      console.error('Error response:', error.response);
     } finally {
       setLoading(false);
     }
@@ -47,7 +40,7 @@ const AccountDeletionManagement = () => {
 
   const handleStatusUpdate = async (id, status) => {
     try {
-      await axios.patch(`${API_BASE_URL}/account-deletion-request/${id}/status`, { status });
+      await api.patch(`/account-deletion-request/${id}/status`, { status });
       await fetchDeletions();
       setConfirmModal(null);
       toast.success(`Status updated to ${status} successfully!`);
@@ -59,7 +52,7 @@ const AccountDeletionManagement = () => {
 
   const handleDeletePermanent = async (id) => {
     try {
-      await axios.delete(`${API_BASE_URL}/account-deletion-request/${id}/permanent`);
+      await api.delete(`/account-deletion-request/${id}/permanent`);
       await fetchDeletions();
       setConfirmModal(null);
       toast.success('Account deletion request deleted permanently!');

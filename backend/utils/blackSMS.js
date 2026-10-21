@@ -35,7 +35,10 @@ export const sendBlackSMSOTP = async (mobileNumber, otp) => {
       cleanNumber = cleanNumber.slice(-10);
     }
 
-    console.log(`🚀 [BlackSMS] Sending SMS OTP to ${cleanNumber} with values: ${otp}...`);
+    const maskedNumber = cleanNumber.length >= 4 
+      ? `${cleanNumber.slice(0, 2)}******${cleanNumber.slice(-2)}` 
+      : '***';
+    console.log(`🚀 [BlackSMS] Sending SMS OTP to ${maskedNumber}...`);
 
     const payload = {
       sender_id: senderId,

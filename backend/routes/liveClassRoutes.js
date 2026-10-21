@@ -1,5 +1,15 @@
 import express from 'express';
-import { getLiveClasses, getLiveClass, createLiveClass, updateLiveClass, deleteLiveClass, deleteLiveClassSeries, getMeetingSignature } from '../controllers/liveClassController.js';
+import { 
+  getLiveClasses, 
+  getLiveClass, 
+  createLiveClass, 
+  updateLiveClass, 
+  deleteLiveClass, 
+  deleteLiveClassSeries, 
+  getMeetingSignature,
+  notifyLiveClassStudents,
+  broadcastLiveClassesSchedule
+} from '../controllers/liveClassController.js';
 import { protect } from '../middleware/auth.js';
 import { adminOnly } from '../middleware/adminMiddleware.js';
 
@@ -9,9 +19,14 @@ router.route('/')
   .get(getLiveClasses)
   .post(protect, adminOnly, createLiveClass);
 
+// Broadcast 3 daily live classes schedule to last 30-day registered students
+router.post('/broadcast-schedule', protect, adminOnly, broadcastLiveClassesSchedule);
+
 // Series route MUST come before /:id to avoid "series" being treated as an id
 router.route('/series/:seriesId')
   .delete(protect, adminOnly, deleteLiveClassSeries);
+
+router.post('/:id/notify-email', protect, adminOnly, notifyLiveClassStudents);
 
 router.route('/:id')
   .get(getLiveClass)

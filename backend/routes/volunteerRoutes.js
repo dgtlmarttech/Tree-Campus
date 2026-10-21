@@ -8,21 +8,24 @@ import {
 } from '../controllers/volunteerController.js';
 
 
+import { protect } from '../middleware/auth.js';
+import { adminOnly } from '../middleware/adminMiddleware.js';
+
 const router = express.Router();
 
-// POST /api/volunteer - Submit volunteer application
+// POST /api/volunteer - Submit volunteer application (Public)
 router.post('/', createVolunteer);
 
-// GET /api/volunteers - Get all volunteers
-router.get('/', getAllVolunteers);
+// GET /api/volunteer - Get all volunteers (Admin)
+router.get('/', protect, adminOnly, getAllVolunteers);
 
-// GET /api/volunteer/:id - Get volunteer by ID
-router.get('/:id', getVolunteerById);
+// GET /api/volunteer/:id - Get volunteer by ID (Admin)
+router.get('/:id', protect, adminOnly, getVolunteerById);
 
-// PATCH /api/volunteer/:id/status - Update volunteer status
-router.patch('/:id/status', updateVolunteerStatus);
+// PATCH /api/volunteer/:id/status - Update volunteer status (Admin)
+router.patch('/:id/status', protect, adminOnly, updateVolunteerStatus);
 
-// DELETE /api/volunteer/:id - Delete volunteer
-router.delete('/:id', deleteVolunteer);
+// DELETE /api/volunteer/:id - Delete volunteer (Admin)
+router.delete('/:id', protect, adminOnly, deleteVolunteer);
 
 export default router;

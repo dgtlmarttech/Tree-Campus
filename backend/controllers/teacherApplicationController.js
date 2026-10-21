@@ -218,7 +218,7 @@ export const verifyTeacherOTP = async (req, res, next) => {
       });
     }
 
-    console.log(`🔍 Validating OTP: ${otp} for Application: ${applicationId}...`);
+    console.log(`🔍 Validating OTP for Application: ${applicationId}...`);
 
     /* --- MESSAGE CENTRAL (COMMENTED OUT) ---
     try {

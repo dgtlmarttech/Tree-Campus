@@ -23,18 +23,16 @@ export default function CoursePlayer() {
 
   const [dayIndex, setDayIndex] = useState(dayIndexInit);
   const [lessonIndex, setLessonIndex] = useState(lessonIndexInit);
+  const fullSyllabus = [];
 
   useEffect(() => {
-    // keep url in sync so user can bookmark
-    navigate(
-      `/course/${courseId || "default"}/player/${dayIndex}/${lessonIndex}`,
-      { replace: true }
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dayIndex, lessonIndex]);
+    if (courseId && courseId !== "default") {
+      navigate(`/courses/${courseId}`, { replace: true });
+    }
+  }, [courseId, navigate]);
 
-  const selectedSection = fullSyllabus[dayIndex];
-  const selectedLesson = selectedSection?.lessons[lessonIndex] || { title: "No lesson", url: "" };
+  const selectedSection = fullSyllabus[dayIndex] || { lessons: [], title: "" };
+  const selectedLesson = selectedSection?.lessons?.[lessonIndex] || { title: "No lesson", url: "" };
 
   // If lesson has no url, show a friendly placeholder
   const iframeSrc = selectedLesson.url && selectedLesson.url.length > 0
@@ -125,7 +123,7 @@ export default function CoursePlayer() {
                     } else if (dayIndex > 0) {
                       const prevDay = dayIndex - 1;
                       setDayIndex(prevDay);
-                      setLessonIndex(fullSyllabus[prevDay].lessons.length - 1);
+                      setLessonIndex((fullSyllabus[prevDay]?.lessons?.length || 1) - 1);
                     }
                   }}
                   className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200"
@@ -135,7 +133,7 @@ export default function CoursePlayer() {
 
                 <button
                   onClick={() => {
-                    if (lessonIndex < (selectedSection.lessons.length - 1)) {
+                    if (lessonIndex < ((selectedSection?.lessons?.length || 1) - 1)) {
                       setLessonIndex(lessonIndex + 1);
                     } else if (dayIndex < fullSyllabus.length - 1) {
                       const nextDay = dayIndex + 1;
