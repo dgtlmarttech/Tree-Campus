@@ -146,7 +146,7 @@ export const runWeeklyLiveClassesAnnouncementJob = async () => {
 /**
  * Initialize all scheduled cron jobs
  * 1. Weekly Enrollment Nudge: Runs every Monday at 10:00 AM ('0 10 * * 1')
- * 2. Weekly 3 Daily Live Classes Announcement: Runs every Thursday at 10:00 AM ('0 10 * * 4')
+ * 2. Weekly 3 Daily Live Classes Announcement: Runs every Monday at 11:00 AM ('0 11 * * 1')
  */
 export const initCronJobs = () => {
   // Weekly Enrollment Nudge: Every Monday at 10:00 AM
@@ -155,11 +155,11 @@ export const initCronJobs = () => {
     await runWeeklyEnrollmentNudgeJob();
   });
 
-  // Weekly 3 Daily Live Classes Announcement: Every Thursday at 10:00 AM
-  cron.schedule('0 10 * * 4', async () => {
-    console.log('🔔 [Cron] Triggering scheduled Thursday 10:00 AM Daily Live Classes Announcement...');
+  // Weekly 3 Daily Live Classes Announcement: Every Monday at 11:00 AM
+  cron.schedule('0 11 * * 1', async () => {
+    console.log('🔔 [Cron] Triggering scheduled Monday 11:00 AM Daily Live Classes Announcement...');
     await runWeeklyLiveClassesAnnouncementJob();
   });
 
-  console.log('📅 [Cron] Scheduled jobs initialized (Weekly Enrollment Nudge: Mondays 10 AM, Weekly 3 Live Classes: Thursdays 10 AM)');
+  console.log('📅 [Cron] Scheduled jobs initialized (Weekly Enrollment Nudge: Mondays 10 AM, Weekly 3 Live Classes: Mondays 11 AM)');
 };
