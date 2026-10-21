@@ -179,26 +179,52 @@ export const generateWelcomeEmailHtml = (toName) => {
       background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%);
       color: #ffffff !important;
       text-decoration: none;
-      padding: 13px 22px;
+      padding: 12px 20px;
       border-radius: 50px;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 700;
       box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3);
       letter-spacing: 0.2px;
-      white-space: nowrap;
+      text-align: center;
+      box-sizing: border-box;
     }
     .cta-btn-secondary {
       display: inline-block;
       background: #F0F4F2;
       color: #1B4332 !important;
       text-decoration: none;
-      padding: 12px 20px;
+      padding: 11px 18px;
       border-radius: 50px;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 700;
       border: 1px solid #C8D6CF;
       letter-spacing: 0.2px;
-      white-space: nowrap;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .btn-wrap {
+      display: inline-block;
+      vertical-align: middle;
+      margin: 4px;
+    }
+    @media only screen and (max-width: 480px) {
+      .wrapper {
+        padding: 16px 8px !important;
+      }
+      .content {
+        padding: 20px 14px !important;
+      }
+      .btn-wrap {
+        display: block !important;
+        width: 100% !important;
+        margin: 6px 0 !important;
+      }
+      .cta-btn-primary, .cta-btn-secondary {
+        display: block !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+      }
     }
     .features-card {
       background-color: #F8FAF9;
@@ -273,22 +299,18 @@ export const generateWelcomeEmailHtml = (toName) => {
           Everything you need to master English speaking, grammar, and vocabulary is available <strong>at no cost</strong> on our website and mobile app.
         </p>
 
-        <!-- PROMINENT TOP CTAs (Side by Side) -->
-        <div style="text-align: center; margin: 20px 0 24px 0;">
-          <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
-            <tr>
-              <td align="center" style="padding: 6px 8px; vertical-align: middle;">
-                <a href="${PLAY_STORE_URL}" target="_blank" class="cta-btn-primary">
-                  📲 Open Treecampus App
-                </a>
-              </td>
-              <td align="center" style="padding: 6px 8px; vertical-align: middle;">
-                <a href="${COURSES_URL}" target="_blank" class="cta-btn-secondary">
-                  🌐 Visit Website
-                </a>
-              </td>
-            </tr>
-          </table>
+        <!-- PROMINENT TOP CTAs (Side by Side on Desktop, Fluid Stack on Mobile) -->
+        <div style="text-align: center; margin: 18px 0 22px 0;">
+          <div class="btn-wrap" style="display: inline-block; vertical-align: middle; margin: 4px;">
+            <a href="${PLAY_STORE_URL}" target="_blank" class="cta-btn-primary" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 12px 20px; border-radius: 50px; font-size: 13.5px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center;">
+              📲 Open Treecampus App
+            </a>
+          </div>
+          <div class="btn-wrap" style="display: inline-block; vertical-align: middle; margin: 4px;">
+            <a href="${COURSES_URL}" target="_blank" class="cta-btn-secondary" style="display: inline-block; background: #F0F4F2; color: #1B4332 !important; text-decoration: none; padding: 11px 18px; border-radius: 50px; font-size: 13.5px; font-weight: 700; border: 1px solid #C8D6CF; text-align: center;">
+              🌐 Visit Website
+            </a>
+          </div>
         </div>
 
         <!-- FEATURES LIST -->
@@ -466,26 +488,52 @@ export const generateCourseEnrollmentNudgeEmailHtml = (toName) => {
       background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%);
       color: #ffffff !important;
       text-decoration: none;
-      padding: 13px 22px;
+      padding: 12px 20px;
       border-radius: 50px;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 700;
       box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3);
       letter-spacing: 0.2px;
-      white-space: nowrap;
+      text-align: center;
+      box-sizing: border-box;
     }
     .cta-btn-secondary {
       display: inline-block;
       background: #F0F4F2;
       color: #1B4332 !important;
       text-decoration: none;
-      padding: 12px 20px;
+      padding: 11px 18px;
       border-radius: 50px;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 700;
       border: 1px solid #C8D6CF;
       letter-spacing: 0.2px;
-      white-space: nowrap;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .btn-wrap {
+      display: inline-block;
+      vertical-align: middle;
+      margin: 4px;
+    }
+    @media only screen and (max-width: 480px) {
+      .wrapper {
+        padding: 16px 8px !important;
+      }
+      .content {
+        padding: 20px 14px !important;
+      }
+      .btn-wrap {
+        display: block !important;
+        width: 100% !important;
+        margin: 6px 0 !important;
+      }
+      .cta-btn-primary, .cta-btn-secondary {
+        display: block !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+      }
     }
     .course-card {
       background: linear-gradient(180deg, #FAFDFB 0%, #F3F8F5 100%);
@@ -607,22 +655,18 @@ export const generateCourseEnrollmentNudgeEmailHtml = (toName) => {
           Every course on Treecampus is 100% <strong>at no cost</strong> — no subscription required.
         </p>
 
-        <!-- SIDE-BY-SIDE CTAs -->
-        <div style="text-align: center; margin: 20px 0 24px 0;">
-          <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
-            <tr>
-              <td align="center" style="padding: 6px 8px; vertical-align: middle;">
-                <a href="${PLAY_STORE_URL}" target="_blank" class="cta-btn-primary">
-                  📲 Enroll on App
-                </a>
-              </td>
-              <td align="center" style="padding: 6px 8px; vertical-align: middle;">
-                <a href="${COURSES_URL}" target="_blank" class="cta-btn-secondary">
-                  🌐 Enroll on Website
-                </a>
-              </td>
-            </tr>
-          </table>
+        <!-- SIDE-BY-SIDE CTAs (Fluid Stack on Mobile) -->
+        <div style="text-align: center; margin: 18px 0 22px 0;">
+          <div class="btn-wrap" style="display: inline-block; vertical-align: middle; margin: 4px;">
+            <a href="${PLAY_STORE_URL}" target="_blank" class="cta-btn-primary" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 12px 20px; border-radius: 50px; font-size: 13.5px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center;">
+              📲 Enroll on App
+            </a>
+          </div>
+          <div class="btn-wrap" style="display: inline-block; vertical-align: middle; margin: 4px;">
+            <a href="${COURSES_URL}" target="_blank" class="cta-btn-secondary" style="display: inline-block; background: #F0F4F2; color: #1B4332 !important; text-decoration: none; padding: 11px 18px; border-radius: 50px; font-size: 13.5px; font-weight: 700; border: 1px solid #C8D6CF; text-align: center;">
+              🌐 Enroll on Website
+            </a>
+          </div>
         </div>
 
         <!-- FEATURED COURSE SPOTLIGHT -->
@@ -686,22 +730,18 @@ export const generateCourseEnrollmentNudgeEmailHtml = (toName) => {
           It takes just <strong>10 seconds</strong> to click below and begin your first lesson. Start today!
         </p>
 
-        <!-- SECONDARY CTAs AT BOTTOM -->
+        <!-- SECONDARY CTAs AT BOTTOM (Fluid Stack on Mobile) -->
         <div style="text-align: center; margin: 20px 0 10px 0;">
-          <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
-            <tr>
-              <td align="center" style="padding: 6px 8px; vertical-align: middle;">
-                <a href="${PLAY_STORE_URL}" target="_blank" class="cta-btn-primary">
-                  📲 Open App & Enroll
-                </a>
-              </td>
-              <td align="center" style="padding: 6px 8px; vertical-align: middle;">
-                <a href="${COURSES_URL}" target="_blank" class="cta-btn-secondary">
-                  🌐 Enroll on Website
-                </a>
-              </td>
-            </tr>
-          </table>
+          <div class="btn-wrap" style="display: inline-block; vertical-align: middle; margin: 4px;">
+            <a href="${PLAY_STORE_URL}" target="_blank" class="cta-btn-primary" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 12px 20px; border-radius: 50px; font-size: 13.5px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center;">
+              📲 Open App & Enroll
+            </a>
+          </div>
+          <div class="btn-wrap" style="display: inline-block; vertical-align: middle; margin: 4px;">
+            <a href="${COURSES_URL}" target="_blank" class="cta-btn-secondary" style="display: inline-block; background: #F0F4F2; color: #1B4332 !important; text-decoration: none; padding: 11px 18px; border-radius: 50px; font-size: 13.5px; font-weight: 700; border: 1px solid #C8D6CF; text-align: center;">
+              🌐 Enroll on Website
+            </a>
+          </div>
         </div>
       </div>
 
@@ -833,26 +873,52 @@ export const generateDailyLiveClassesEmailHtml = (toName) => {
       background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%);
       color: #ffffff !important;
       text-decoration: none;
-      padding: 13px 22px;
+      padding: 12px 20px;
       border-radius: 50px;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 700;
       box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3);
       letter-spacing: 0.2px;
-      white-space: nowrap;
+      text-align: center;
+      box-sizing: border-box;
     }
     .cta-btn-secondary {
       display: inline-block;
       background: #F0F4F2;
       color: #1B4332 !important;
       text-decoration: none;
-      padding: 12px 20px;
+      padding: 11px 18px;
       border-radius: 50px;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 700;
       border: 1px solid #C8D6CF;
       letter-spacing: 0.2px;
-      white-space: nowrap;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .btn-wrap {
+      display: inline-block;
+      vertical-align: middle;
+      margin: 4px;
+    }
+    @media only screen and (max-width: 480px) {
+      .wrapper {
+        padding: 16px 8px !important;
+      }
+      .content {
+        padding: 20px 14px !important;
+      }
+      .btn-wrap {
+        display: block !important;
+        width: 100% !important;
+        margin: 6px 0 !important;
+      }
+      .cta-btn-primary, .cta-btn-secondary {
+        display: block !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+      }
     }
     .class-card {
       background: linear-gradient(180deg, #FAFDFB 0%, #F3F8F5 100%);
@@ -962,22 +1028,18 @@ export const generateDailyLiveClassesEmailHtml = (toName) => {
           Whether you prefer learning from Hindi or Bengali, our expert language mentors are here to help you build fluent, confident speaking skills — <strong>100% at no cost</strong>!
         </p>
 
-        <!-- TOP SIDE-BY-SIDE CTAs -->
-        <div style="text-align: center; margin: 18px 0 24px 0;">
-          <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
-            <tr>
-              <td align="center" style="padding: 6px 8px; vertical-align: middle;">
-                <a href="${PLAY_STORE_URL}" target="_blank" class="cta-btn-primary">
-                  📲 Open Treecampus App
-                </a>
-              </td>
-              <td align="center" style="padding: 6px 8px; vertical-align: middle;">
-                <a href="${COURSES_URL}" target="_blank" class="cta-btn-secondary">
-                  🌐 View on Website
-                </a>
-              </td>
-            </tr>
-          </table>
+        <!-- TOP SIDE-BY-SIDE CTAs (Fluid Stack on Mobile) -->
+        <div style="text-align: center; margin: 18px 0 22px 0;">
+          <div class="btn-wrap" style="display: inline-block; vertical-align: middle; margin: 4px;">
+            <a href="${PLAY_STORE_URL}" target="_blank" class="cta-btn-primary" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 12px 20px; border-radius: 50px; font-size: 13.5px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center;">
+              📲 Open Treecampus App
+            </a>
+          </div>
+          <div class="btn-wrap" style="display: inline-block; vertical-align: middle; margin: 4px;">
+            <a href="${COURSES_URL}" target="_blank" class="cta-btn-secondary" style="display: inline-block; background: #F0F4F2; color: #1B4332 !important; text-decoration: none; padding: 11px 18px; border-radius: 50px; font-size: 13.5px; font-weight: 700; border: 1px solid #C8D6CF; text-align: center;">
+              🌐 View on Website
+            </a>
+          </div>
         </div>
 
         <!-- 3 LIVE CLASSES SCHEDULE -->
@@ -1044,7 +1106,7 @@ export const generateDailyLiveClassesEmailHtml = (toName) => {
 
         <!-- BOTTOM DIRECT CTA -->
         <div style="text-align: center; margin: 20px 0 10px 0;">
-          <a href="${PLAY_STORE_URL}" target="_blank" class="cta-btn-primary" style="padding: 14px 30px; font-size: 15px;">
+          <a href="${PLAY_STORE_URL}" target="_blank" class="cta-btn-primary" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 13px 26px; border-radius: 50px; font-size: 14px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center; max-width: 100%; box-sizing: border-box;">
             📲 Open App & Join Live Classes
           </a>
         </div>
