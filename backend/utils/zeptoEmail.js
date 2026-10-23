@@ -300,7 +300,7 @@ export const generateWelcomeEmailHtml = (toName) => {
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 18px auto 22px auto;">
           <tr>
             <td align="center" style="padding-bottom: 10px;">
-              <a href="${APP_REDIRECT_URL}" target="_blank" class="cta-btn-primary" style="display: block; max-width: 280px; width: 100%; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 13px 20px; border-radius: 50px; font-size: 14px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center; box-sizing: border-box; margin: 0 auto; letter-spacing: 0.2px;">
+              <a href="${PLAY_STORE_URL}" target="_blank" class="cta-btn-primary" style="display: block; max-width: 280px; width: 100%; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 13px 20px; border-radius: 50px; font-size: 14px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center; box-sizing: border-box; margin: 0 auto; letter-spacing: 0.2px;">
                 📲 Open Treecampus App
               </a>
             </td>
@@ -655,7 +655,7 @@ export const generateCourseEnrollmentNudgeEmailHtml = (toName) => {
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 18px auto 22px auto;">
           <tr>
             <td align="center" style="padding-bottom: 10px;">
-              <a href="${APP_REDIRECT_URL}" target="_blank" class="cta-btn-primary" style="display: block; max-width: 280px; width: 100%; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 13px 20px; border-radius: 50px; font-size: 14px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center; box-sizing: border-box; margin: 0 auto; letter-spacing: 0.2px;">
+              <a href="${PLAY_STORE_URL}" target="_blank" class="cta-btn-primary" style="display: block; max-width: 280px; width: 100%; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 13px 20px; border-radius: 50px; font-size: 14px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center; box-sizing: border-box; margin: 0 auto; letter-spacing: 0.2px;">
                 📲 Enroll on App
               </a>
             </td>
@@ -734,7 +734,7 @@ export const generateCourseEnrollmentNudgeEmailHtml = (toName) => {
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 20px auto 10px auto;">
           <tr>
             <td align="center" style="padding-bottom: 10px;">
-              <a href="${APP_REDIRECT_URL}" target="_blank" class="cta-btn-primary" style="display: block; max-width: 280px; width: 100%; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 13px 20px; border-radius: 50px; font-size: 14px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center; box-sizing: border-box; margin: 0 auto; letter-spacing: 0.2px;">
+              <a href="${PLAY_STORE_URL}" target="_blank" class="cta-btn-primary" style="display: block; max-width: 280px; width: 100%; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 13px 20px; border-radius: 50px; font-size: 14px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center; box-sizing: border-box; margin: 0 auto; letter-spacing: 0.2px;">
                 📲 Open App & Enroll
               </a>
             </td>
@@ -1031,7 +1031,7 @@ export const generateDailyLiveClassesEmailHtml = (toName) => {
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 18px auto 22px auto;">
           <tr>
             <td align="center" style="padding-bottom: 10px;">
-              <a href="${APP_REDIRECT_URL}" target="_blank" class="cta-btn-primary" style="display: block; max-width: 280px; width: 100%; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 13px 20px; border-radius: 50px; font-size: 14px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center; box-sizing: border-box; margin: 0 auto; letter-spacing: 0.2px;">
+              <a href="${PLAY_STORE_URL}" target="_blank" class="cta-btn-primary" style="display: block; max-width: 280px; width: 100%; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 13px 20px; border-radius: 50px; font-size: 14px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center; box-sizing: border-box; margin: 0 auto; letter-spacing: 0.2px;">
                 📲 Open Treecampus App
               </a>
             </td>
@@ -1109,7 +1109,7 @@ export const generateDailyLiveClassesEmailHtml = (toName) => {
 
         <!-- BOTTOM DIRECT CTA -->
         <div style="text-align: center; margin: 20px 0 10px 0;">
-          <a href="${APP_REDIRECT_URL}" target="_blank" class="cta-btn-primary" style="display: block; max-width: 280px; width: 100%; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 13px 20px; border-radius: 50px; font-size: 14px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center; box-sizing: border-box; margin: 0 auto; letter-spacing: 0.2px;">
+          <a href="${PLAY_STORE_URL}" target="_blank" class="cta-btn-primary" style="display: block; max-width: 280px; width: 100%; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 13px 20px; border-radius: 50px; font-size: 14px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center; box-sizing: border-box; margin: 0 auto; letter-spacing: 0.2px;">
             📲 Open App & Join Live Classes
           </a>
         </div>
