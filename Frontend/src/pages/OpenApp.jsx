@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { ExternalLink, Download, Globe, Sparkles, Smartphone, CheckCircle } from 'lucide-react';
+import { ExternalLink, Download, Globe, Sparkles, Smartphone, CheckCircle, RefreshCw } from 'lucide-react';
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.academy.tree_campus';
 const COURSES_URL = 'https://courses.treecampus.in';
-const ANDROID_INTENT_URL = `intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=com.academy.tree_campus;S.browser_fallback_url=${encodeURIComponent(PLAY_STORE_URL)};end`;
+
+// App Custom Scheme & Chrome Intent URLs
+const SCHEME_OPEN = 'treecampus://open';
+const SCHEME_CALLBACK = 'treecampus://login-callback';
+const SCHEME_ROOT = 'treecampus://';
+const ANDROID_CHROME_INTENT = `intent://open#Intent;scheme=treecampus;package=com.academy.tree_campus;S.browser_fallback_url=${encodeURIComponent(PLAY_STORE_URL)};end`;
 
 const OpenApp = () => {
   const [deviceInfo, setDeviceInfo] = useState({
@@ -11,7 +16,26 @@ const OpenApp = () => {
     isIOS: false,
     isDesktop: false,
   });
-  const [status, setStatus] = useState('Opening Treecampus App...');
+  const [status, setStatus] = useState('Connecting to Treecampus App...');
+  const [showOptions, setShowOptions] = useState(false);
+
+  const attemptLaunch = () => {
+    // 1. Try launching via app's custom scheme first
+    try {
+      window.location.href = SCHEME_OPEN;
+    } catch (e) {
+      console.warn('Scheme launch error:', e);
+    }
+
+    // 2. Try Chrome browsable intent after brief pause
+    setTimeout(() => {
+      try {
+        window.location.href = ANDROID_CHROME_INTENT;
+      } catch (e) {
+        console.warn('Intent launch error:', e);
+      }
+    }, 400);
+  };
 
   useEffect(() => {
     const userAgent = navigator.userAgent || navigator.vendor || window.opera;
@@ -22,17 +46,21 @@ const OpenApp = () => {
     setDeviceInfo({ isAndroid, isIOS, isDesktop });
 
     if (isAndroid) {
-      setStatus('Redirecting to Treecampus App...');
-      // Execute Android Intent to launch app directly, with Play Store fallback
+      setStatus('Opening Treecampus App...');
+      // Try opening the app automatically
       const timer = setTimeout(() => {
-        try {
-          window.location.href = ANDROID_INTENT_URL;
-        } catch (e) {
-          console.warn('Auto redirect failed:', e);
-        }
-      }, 350);
+        attemptLaunch();
+      }, 300);
 
-      return () => clearTimeout(timer);
+      // If user is still here after 2.5 seconds, reveal alternate options
+      const revealTimer = setTimeout(() => {
+        setShowOptions(true);
+      }, 2500);
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(revealTimer);
+      };
     } else if (isIOS) {
       setStatus('Welcome iOS Learner');
     } else {
@@ -40,23 +68,15 @@ const OpenApp = () => {
     }
   }, []);
 
-  const handleOpenAppClick = () => {
-    if (deviceInfo.isAndroid) {
-      window.location.href = ANDROID_INTENT_URL;
-    } else {
-      window.location.href = PLAY_STORE_URL;
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1B4332] via-[#2D6A4F] to-[#081C15] flex items-center justify-center p-4 sm:p-6 font-['Plus_Jakarta_Sans',sans-serif] text-slate-800">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 sm:p-8 text-center relative overflow-hidden border border-white/20 animate-fade-in">
         
-        {/* Subtle decorative background glow */}
+        {/* Subtle decorative glow */}
         <div className="absolute -top-16 -right-16 w-40 h-40 bg-orange-400/20 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-16 -left-16 w-40 h-40 bg-emerald-400/20 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Brand Logo with pulse effect */}
+        {/* Brand Logo */}
         <div className="relative mx-auto mb-5 w-24 h-24 flex items-center justify-center">
           <div className="absolute inset-0 rounded-2xl bg-emerald-500/10 animate-ping" style={{ animationDuration: '3s' }} />
           <div className="relative w-24 h-24 rounded-2xl bg-white shadow-lg p-2.5 flex items-center justify-center border border-emerald-100">
@@ -74,28 +94,58 @@ const OpenApp = () => {
           <span>{status}</span>
         </div>
 
-        {/* Main Heading */}
+        {/* Heading */}
         <h1 className="text-2xl sm:text-[26px] font-extrabold text-[#1B4332] leading-tight mb-2 tracking-tight">
           Treecampus Learning
         </h1>
         <p className="text-sm text-slate-600 mb-6 leading-relaxed">
           {deviceInfo.isAndroid
-            ? 'If the Treecampus app does not launch automatically in a moment, tap below to open or install it directly.'
-            : 'Access 100% free Spoken English courses, Spokee 3D AI Teacher, and daily interactive Zoom classes.'}
+            ? 'If your Treecampus app did not launch automatically, tap the button below to open it directly:'
+            : 'Access 100% free Spoken English courses, Spokee AI Teacher, and daily interactive Zoom classes.'}
         </p>
 
         {/* Action Buttons */}
         <div className="space-y-3 mb-6">
-          {/* Primary Action Button (Intent for Android) */}
-          <a
-            href={ANDROID_INTENT_URL}
-            onClick={handleOpenAppClick}
+          {/* Main Launch Button */}
+          <button
+            type="button"
+            onClick={attemptLaunch}
             id="open-app-primary-btn"
             className="w-full inline-flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-2xl text-white font-bold text-[15px] bg-gradient-to-r from-[#FF6B35] to-[#E85D04] hover:from-[#E85D04] hover:to-[#D9480F] shadow-lg shadow-orange-500/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
           >
             <Smartphone className="w-5 h-5" />
-            <span>Open Treecampus App</span>
-          </a>
+            <span>📲 Open Treecampus App</span>
+          </button>
+
+          {/* Alternate launch options (shown if needed or toggled) */}
+          {(showOptions || deviceInfo.isAndroid) && (
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-left space-y-2 text-xs">
+              <div className="font-bold text-slate-700 mb-1 flex items-center justify-between">
+                <span>App Link Launchers:</span>
+                <span className="text-[10px] text-emerald-700 font-semibold">Tap to launch</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <a
+                  href={SCHEME_OPEN}
+                  className="bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-800 p-2 rounded-xl text-center font-bold transition-colors"
+                >
+                  🚀 Mode 1 (App Open)
+                </a>
+                <a
+                  href={SCHEME_CALLBACK}
+                  className="bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-800 p-2 rounded-xl text-center font-bold transition-colors"
+                >
+                  ⚡ Mode 2 (Deep Link)
+                </a>
+              </div>
+              <a
+                href={ANDROID_CHROME_INTENT}
+                className="block bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-800 p-2 rounded-xl text-center font-bold transition-colors"
+              >
+                📱 Mode 3 (Android Chrome Intent)
+              </a>
+            </div>
+          )}
 
           {/* Secondary Action: Play Store */}
           <a
@@ -137,7 +187,7 @@ const OpenApp = () => {
           </div>
         </div>
 
-        {/* Footer brand tagline */}
+        {/* Footer */}
         <p className="mt-5 text-[11px] text-slate-400 font-medium">
           Treecampus • Democratizing Quality Education at No Cost
         </p>

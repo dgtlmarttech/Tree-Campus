@@ -137,7 +137,9 @@ app.get('/api/health', (req, res) => {
 app.get('/open-app', (req, res) => {
   const playStoreUrl = process.env.PLAY_STORE_URL || 'https://play.google.com/store/apps/details?id=com.academy.tree_campus';
   const coursesUrl = process.env.COURSES_URL || 'https://courses.treecampus.in';
-  const intentUrl = `intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=com.academy.tree_campus;S.browser_fallback_url=${encodeURIComponent(playStoreUrl)};end`;
+  const schemeOpenUrl = 'treecampus://open';
+  const schemeCallbackUrl = 'treecampus://login-callback';
+  const intentUrl = `intent://open#Intent;scheme=treecampus;package=com.academy.tree_campus;S.browser_fallback_url=${encodeURIComponent(playStoreUrl)};end`;
 
   res.send(`<!DOCTYPE html>
 <html lang="en">
@@ -206,6 +208,8 @@ app.get('/open-app', (req, res) => {
       font-size: 15px;
       box-shadow: 0 4px 16px rgba(255, 107, 53, 0.35);
       margin-bottom: 10px;
+      cursor: pointer;
+      border: none;
     }
     .btn-secondary {
       display: block;
@@ -229,6 +233,22 @@ app.get('/open-app', (req, res) => {
       margin-top: 6px;
     }
     .tagline { margin-top: 20px; font-size: 11px; color: #94a3b8; }
+    .modes {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .btn-mode {
+      flex: 1;
+      padding: 8px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #334155;
+      text-decoration: none;
+    }
   </style>
 </head>
 <body>
@@ -240,7 +260,14 @@ app.get('/open-app', (req, res) => {
     <h1>Launching Your Class</h1>
     <p>If the app didn't open automatically on your phone, tap the button below:</p>
 
-    <a href="${intentUrl}" class="btn-primary" id="openBtn">📲 Open Treecampus App</a>
+    <a href="${schemeOpenUrl}" class="btn-primary" id="openBtn">📲 Open Treecampus App</a>
+
+    <div class="modes">
+      <a href="${schemeOpenUrl}" class="btn-mode">Mode 1 (App Open)</a>
+      <a href="${schemeCallbackUrl}" class="btn-mode">Mode 2 (Deep Link)</a>
+    </div>
+
+    <a href="${intentUrl}" class="btn-secondary">📱 Launch via Android Intent</a>
     <a href="${playStoreUrl}" class="btn-secondary" target="_blank">📥 Download on Google Play</a>
     <a href="${coursesUrl}" class="btn-link">🌐 Continue on Website</a>
 
@@ -251,8 +278,8 @@ app.get('/open-app', (req, res) => {
     const isAndroid = /Android/i.test(navigator.userAgent);
     if (isAndroid) {
       setTimeout(() => {
-        window.location.href = "${intentUrl}";
-      }, 250);
+        window.location.href = "${schemeOpenUrl}";
+      }, 300);
     }
   </script>
 </body>
