@@ -2,6 +2,7 @@ import fetch from 'node-fetch';
 
 const PLAY_STORE_URL = process.env.PLAY_STORE_URL || 'https://play.google.com/store/apps/details?id=com.academy.tree_campus';
 const COURSES_URL = process.env.COURSES_URL || 'https://courses.treecampus.in';
+const APP_REDIRECT_URL = process.env.APP_REDIRECT_URL || `${COURSES_URL}/open-app`;
 
 /**
  * Send email via Zoho ZeptoMail API
@@ -302,7 +303,7 @@ export const generateWelcomeEmailHtml = (toName) => {
         <!-- PROMINENT TOP CTAs (Side by Side on Desktop, Fluid Stack on Mobile) -->
         <div style="text-align: center; margin: 18px 0 22px 0;">
           <div class="btn-wrap" style="display: inline-block; vertical-align: middle; margin: 4px;">
-            <a href="${PLAY_STORE_URL}" target="_blank" class="cta-btn-primary" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 12px 20px; border-radius: 50px; font-size: 13.5px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center;">
+            <a href="${APP_REDIRECT_URL}" target="_blank" class="cta-btn-primary" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 12px 20px; border-radius: 50px; font-size: 13.5px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center;">
               📲 Open Treecampus App
             </a>
           </div>
@@ -658,7 +659,7 @@ export const generateCourseEnrollmentNudgeEmailHtml = (toName) => {
         <!-- SIDE-BY-SIDE CTAs (Fluid Stack on Mobile) -->
         <div style="text-align: center; margin: 18px 0 22px 0;">
           <div class="btn-wrap" style="display: inline-block; vertical-align: middle; margin: 4px;">
-            <a href="${PLAY_STORE_URL}" target="_blank" class="cta-btn-primary" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 12px 20px; border-radius: 50px; font-size: 13.5px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center;">
+            <a href="${APP_REDIRECT_URL}" target="_blank" class="cta-btn-primary" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 12px 20px; border-radius: 50px; font-size: 13.5px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center;">
               📲 Enroll on App
             </a>
           </div>
@@ -733,7 +734,7 @@ export const generateCourseEnrollmentNudgeEmailHtml = (toName) => {
         <!-- SECONDARY CTAs AT BOTTOM (Fluid Stack on Mobile) -->
         <div style="text-align: center; margin: 20px 0 10px 0;">
           <div class="btn-wrap" style="display: inline-block; vertical-align: middle; margin: 4px;">
-            <a href="${PLAY_STORE_URL}" target="_blank" class="cta-btn-primary" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 12px 20px; border-radius: 50px; font-size: 13.5px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center;">
+            <a href="${APP_REDIRECT_URL}" target="_blank" class="cta-btn-primary" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 12px 20px; border-radius: 50px; font-size: 13.5px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center;">
               📲 Open App & Enroll
             </a>
           </div>
@@ -1031,7 +1032,7 @@ export const generateDailyLiveClassesEmailHtml = (toName) => {
         <!-- TOP SIDE-BY-SIDE CTAs (Fluid Stack on Mobile) -->
         <div style="text-align: center; margin: 18px 0 22px 0;">
           <div class="btn-wrap" style="display: inline-block; vertical-align: middle; margin: 4px;">
-            <a href="${PLAY_STORE_URL}" target="_blank" class="cta-btn-primary" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 12px 20px; border-radius: 50px; font-size: 13.5px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center;">
+            <a href="${APP_REDIRECT_URL}" target="_blank" class="cta-btn-primary" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 12px 20px; border-radius: 50px; font-size: 13.5px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center;">
               📲 Open Treecampus App
             </a>
           </div>
@@ -1106,7 +1107,7 @@ export const generateDailyLiveClassesEmailHtml = (toName) => {
 
         <!-- BOTTOM DIRECT CTA -->
         <div style="text-align: center; margin: 20px 0 10px 0;">
-          <a href="${PLAY_STORE_URL}" target="_blank" class="cta-btn-primary" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 13px 26px; border-radius: 50px; font-size: 14px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center; max-width: 100%; box-sizing: border-box;">
+          <a href="${APP_REDIRECT_URL}" target="_blank" class="cta-btn-primary" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #E85D04 100%); color: #ffffff !important; text-decoration: none; padding: 13px 26px; border-radius: 50px; font-size: 14px; font-weight: 700; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3); text-align: center; max-width: 100%; box-sizing: border-box;">
             📲 Open App & Join Live Classes
           </a>
         </div>

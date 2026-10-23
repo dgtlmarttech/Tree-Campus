@@ -33,6 +33,7 @@ import AITeacherPage from './pages/AITeacherPage';
 import AIFloatingButton from './components/common/AIFloatingButton';
 import MeetingRoom from './components/LiveClass/MeetingRoom';
 import UserAccountDeletionNew from './pages/UserAccountDeletionNew';
+import OpenApp from './pages/OpenApp';
 import TermsAndConditions from './pages/TermsAndConditions';
 import AboutUs from './pages/AboutUs';
 import PrivacyPolicy from './pages/PrivacyPolicy';
@@ -86,7 +87,7 @@ import VocabularyBuilder from './components/games/VocabularyBuilder';
 function App() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
-  const isStandaloneRoute = location.pathname === '/user-account-deletion';
+  const isStandaloneRoute = location.pathname === '/user-account-deletion' || location.pathname === '/open-app';
 
   useEffect(() => {
     if ("scrollRestoration" in window.history) {
@@ -159,6 +160,7 @@ function App() {
   <Route path="/englishspeaking" element={<EnglishSpeaking />} />
   <Route path="/accountdeletion" element={<AccountDeletionForm />} />
   <Route path="/user-account-deletion" element={<UserAccountDeletionNew />} />
+  <Route path="/open-app" element={<OpenApp />} />
   <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
   <Route path="/about-us" element={<AboutUs />} />
   <Route path="/privacy" element={<PrivacyPolicy />} />
