@@ -148,3 +148,7 @@ migrated_users_report.csv
 treecampus
 users3.csv
 users_jan2026_current.csv
+
+# Local-only report and one-off utility script
+/report.xls
+/update_home.js
