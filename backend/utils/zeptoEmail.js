@@ -168,7 +168,7 @@ export const generateWelcomeEmailHtml = (toName) => {
     .intro-text {
       font-size: 15.5px;
       line-height: 1.65;
-      color: #334155;
+      color: #1E293B;
       margin-bottom: 20px;
       letter-spacing: -0.1px;
     }
@@ -250,7 +250,7 @@ export const generateWelcomeEmailHtml = (toName) => {
       vertical-align: middle;
       font-size: 14px;
       line-height: 1.5;
-      color: #334155;
+      color: #1E293B;
     }
     .feature-text strong {
       color: #1B4332;
@@ -356,7 +356,7 @@ export const generateWelcomeEmailHtml = (toName) => {
           </div>
         </div>
 
-        <div style="text-align: center; font-size: 13px; color: #556960; margin-top: 16px;">
+        <div style="text-align: center; font-size: 13px; color: #334155; margin-top: 16px;">
           Happy Learning with Treecampus! 🚀
         </div>
       </div>
@@ -431,7 +431,7 @@ export const generateCourseEnrollmentNudgeEmailHtml = (toName) => {
       margin: 0;
       padding: 0;
       background-color: #f3f6f4;
-      color: #334155;
+      color: #1E293B;
     }
     .wrapper {
       width: 100%;
@@ -480,7 +480,7 @@ export const generateCourseEnrollmentNudgeEmailHtml = (toName) => {
     .intro-text {
       font-size: 15.5px;
       line-height: 1.65;
-      color: #334155;
+      color: #1E293B;
       margin-bottom: 20px;
       letter-spacing: -0.1px;
     }
@@ -559,7 +559,7 @@ export const generateCourseEnrollmentNudgeEmailHtml = (toName) => {
     }
     .course-desc {
       font-size: 14px;
-      color: #475569;
+      color: #334155;
       line-height: 1.55;
       margin-bottom: 16px;
     }
@@ -581,7 +581,7 @@ export const generateCourseEnrollmentNudgeEmailHtml = (toName) => {
       display: table-cell;
       vertical-align: middle;
       font-size: 14px;
-      color: #334155;
+      color: #1E293B;
       line-height: 1.5;
     }
     .highlight-text strong {
@@ -608,7 +608,7 @@ export const generateCourseEnrollmentNudgeEmailHtml = (toName) => {
     }
     .stat-label {
       font-size: 11px;
-      color: #64748B;
+      color: #475569;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -726,7 +726,7 @@ export const generateCourseEnrollmentNudgeEmailHtml = (toName) => {
           </table>
         </div>
 
-        <p style="font-size: 14px; color: #40514e; line-height: 1.5; text-align: center; margin-top: 20px;">
+        <p style="font-size: 14px; color: #334155; line-height: 1.5; text-align: center; margin-top: 20px;">
           It takes just <strong>10 seconds</strong> to click below and begin your first lesson. Start today!
         </p>
 
@@ -786,6 +786,120 @@ export const sendCourseEnrollmentNudgeEmail = async (email, name) => {
   });
 };
 
+const escapeEmailHtml = (value) => String(value || '').replace(/[&<>"']/g, (character) => ({
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;'
+})[character]);
+
+export const generateCertificateExamReminderEmailHtml = ({ name, exams }) => {
+  if (!Array.isArray(exams) || exams.length === 0) {
+    throw new Error('Certificate exam reminder requires at least one eligible exam');
+  }
+
+  const safeName = escapeEmailHtml(name?.trim() || 'there');
+  const safeAppUrl = escapeEmailHtml(APP_REDIRECT_URL);
+  const baseUrl = COURSES_URL.replace(/\/+$/, '');
+  const examCards = exams.map((exam, index) => {
+    const safeCourseTitle = escapeEmailHtml(exam.courseTitle || 'your course');
+    const examUrl = `${baseUrl}/courses/${encodeURIComponent(exam.courseId)}/assignment/${encodeURIComponent(exam.assignmentId)}`;
+    const safeExamUrl = escapeEmailHtml(examUrl);
+    const attemptsLeft = Math.max(0, Number(exam.remainingAttempts) || 0);
+    const courseMessage = exam.hasAttempted
+      ? `You have <strong>${attemptsLeft} attempt${attemptsLeft === 1 ? '' : 's'} remaining</strong>. Review your lessons, then try again.`
+      : 'Your exam is unlocked and ready when you are.';
+
+    return `
+      <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="margin:0 0 16px;background-color:#F5FAF6;border:1px solid #D8E6DE;border-radius:14px;">
+        <tr>
+          <td style="padding:20px 22px;">
+            <p style="margin:0 0 8px;color:#2D6A4F;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Eligible exam ${index + 1}</p>
+            <p style="margin:0 0 10px;color:#1B4332;font-size:18px;font-weight:700;line-height:1.4;word-break:break-word;">${safeCourseTitle}</p>
+            <p style="margin:0 0 16px;color:#334155;font-size:14px;line-height:1.6;">${courseMessage}</p>
+            <a href="${safeExamUrl}" target="_blank" style="display:inline-block;padding:11px 20px;border:1px solid #E85D04;border-radius:50px;background-color:#E85D04;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;line-height:1.2;">${exam.hasAttempted ? 'Try this exam again' : 'Take this exam'}</a>
+          </td>
+        </tr>
+      </table>`;
+  }).join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your certificate exams are ready</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>body,table,td,p,a,h1{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif!important;}</style>
+</head>
+<body style="margin:0;padding:0;background-color:#f3f6f4;color:#1E293B;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">You are eligible for ${exams.length} course exam${exams.length === 1 ? '' : 's'}. Take an exam to earn your Treecampus certificate.</div>
+  <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color:#f3f6f4;padding:28px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" border="0" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.06);font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+          <tr>
+            <td align="center" style="padding:28px 24px 30px;background-color:#1B4332;background-image:linear-gradient(135deg,#1B4332 0%,#2D6A4F 100%);">
+              <img src="https://res.cloudinary.com/dbbll23jz/image/upload/v1765170258/tree_logo_ek4uw3.png" alt="Treecampus" width="56" height="56" style="display:block;width:56px;height:56px;object-fit:contain;background:#ffffff;border-radius:12px;padding:5px;margin:0 auto 14px;">
+              <p style="margin:0 0 8px;color:#D8F3DC;font-size:12px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;">Your next milestone</p>
+              <h1 style="margin:0;color:#ffffff;font-size:26px;line-height:1.3;font-weight:700;letter-spacing:-0.4px;">Your certificate exams are ready</h1>
+              <p style="margin:10px 0 0;color:#E8F5E9;font-size:14px;line-height:1.5;">Choose an eligible course exam to get started.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:30px 28px 32px;">
+              <p style="margin:0 0 14px;color:#1B4332;font-size:20px;font-weight:700;">Hi ${safeName},</p>
+              <p style="margin:0 0 20px;color:#334155;font-size:15px;line-height:1.7;">You are eligible for the course exams below. Pass an exam to earn the certificate for that course.</p>
+              ${examCards}
+              <p style="margin:0 0 12px;color:#475569;font-size:12px;line-height:1.6;text-align:center;">Prefer learning on your phone?</p>
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto 16px;">
+                <tr>
+                  <td align="center" bgcolor="#F0F4F2" style="border:1px solid #C8D6CF;border-radius:50px;background-color:#F0F4F2;">
+                    <a href="${safeAppUrl}" target="_blank" style="display:inline-block;padding:12px 24px;border-radius:50px;color:#1B4332;text-decoration:none;font-size:14px;font-weight:700;line-height:1.2;">Open Treecampus mobile app</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0;color:#475569;font-size:12px;line-height:1.6;text-align:center;">Sign in to Treecampus if prompted. The app link can open the app or take you to its download page.</p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:20px 24px;background-color:#1B4332;color:#D8F3DC;font-size:12px;line-height:1.6;">
+              <p style="margin:0 0 4px;color:#ffffff;font-size:14px;font-weight:800;">Treecampus</p>
+              <p style="margin:0;">You received this reminder because you are eligible for these course exams and do not yet have certificates for them.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+};
+
+export const sendCertificateExamReminderEmail = async (
+  email,
+  name,
+  exams
+) => {
+  if (!email) {
+    console.warn('⚠️ [ZeptoMail] sendCertificateExamReminderEmail called without email address');
+    return null;
+  }
+
+  const htmlContent = generateCertificateExamReminderEmailHtml({
+    name,
+    exams
+  });
+
+  return sendZeptoMail({
+    toEmail: email,
+    toName: name?.trim() || 'Treecampus User',
+    subject: 'Your eligible certificate exams are ready | Treecampus',
+    htmlContent
+  });
+};
+
 /**
  * Generate 3 Daily Live Classes Announcement HTML Email (English, No-Cost)
  * @param {string} toName - User's name
@@ -819,7 +933,7 @@ export const generateDailyLiveClassesEmailHtml = (toName) => {
       margin: 0;
       padding: 0;
       background-color: #f3f6f4;
-      color: #334155;
+      color: #1E293B;
     }
     .wrapper {
       width: 100%;
@@ -868,7 +982,7 @@ export const generateDailyLiveClassesEmailHtml = (toName) => {
     .intro-text {
       font-size: 15.5px;
       line-height: 1.65;
-      color: #334155;
+      color: #1E293B;
       margin-bottom: 20px;
       letter-spacing: -0.1px;
     }
@@ -953,7 +1067,7 @@ export const generateDailyLiveClassesEmailHtml = (toName) => {
     }
     .class-desc {
       font-size: 13.5px;
-      color: #475569;
+      color: #334155;
       line-height: 1.5;
     }
     .steps-card {
@@ -988,7 +1102,7 @@ export const generateDailyLiveClassesEmailHtml = (toName) => {
       padding-left: 12px;
       vertical-align: middle;
       font-size: 14px;
-      color: #334155;
+      color: #1E293B;
       line-height: 1.5;
     }
     .footer {

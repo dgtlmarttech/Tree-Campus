@@ -1,7 +1,10 @@
 import cron from 'node-cron';
 import User from '../models/User.js';
 import Enrollment from '../models/Enrollment.js';
-import { sendCourseEnrollmentNudgeEmail, sendDailyLiveClassesEmail } from '../utils/zeptoEmail.js';
+import Assignment from '../models/Assignment.js';
+import AssignmentSubmission from '../models/AssignmentSubmission.js';
+import Certificate from '../models/Certificate.js';
+import { sendCourseEnrollmentNudgeEmail, sendDailyLiveClassesEmail, sendCertificateExamReminderEmail } from '../utils/zeptoEmail.js';
 
 /**
  * Execute the Enrollment Nudge check for students registered in the last 30 days
@@ -143,23 +146,241 @@ export const runWeeklyLiveClassesAnnouncementJob = async () => {
   }
 };
 
+export const runWeeklyCertificateExamReminderJob = async () => {
+  console.log('⏰ [Cron] Starting weekly certificate exam reminder job...');
+
+  try {
+    const now = new Date();
+    const registrationCutoff = new Date(now.getTime() - 120 * 24 * 60 * 60 * 1000);
+    const enrollmentCutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sentCutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const staleClaimCutoff = new Date(now.getTime() - 30 * 60 * 1000);
+
+    const candidates = await User.find({
+      role: 'student',
+      isVerified: true,
+      email: { $exists: true, $ne: '' },
+      createdAt: { $gte: registrationCutoff },
+      $or: [
+        { certificateExamReminderSentAt: { $exists: false } },
+        { certificateExamReminderSentAt: null },
+        { certificateExamReminderSentAt: { $lte: sentCutoff } }
+      ]
+    }).select('name email createdAt enrolledCourses');
+
+    if (candidates.length === 0) {
+      console.log('✅ [Cron] No recent students need a certificate exam reminder.');
+      return { eligible: 0, sent: 0, failed: 0 };
+    }
+
+    const candidateIds = candidates.map((student) => student._id);
+    const enrollments = await Enrollment.find({ user: { $in: candidateIds } })
+      .select('user course enrolledAt');
+    const courseIds = new Set();
+    candidates.forEach((student) => {
+      student.enrolledCourses.forEach((enrollment) => {
+        if (enrollment.courseId) courseIds.add(String(enrollment.courseId));
+      });
+    });
+    enrollments.forEach((enrollment) => courseIds.add(String(enrollment.course)));
+
+    if (courseIds.size === 0) {
+      console.log('✅ [Cron] No enrolled courses found for recent students.');
+      return { eligible: 0, sent: 0, failed: 0 };
+    }
+
+    const assignments = await Assignment.find({
+      courseId: { $in: [...courseIds] }
+    })
+      .populate('courseId', 'title certificateTitle')
+      .sort({ createdAt: 1 })
+      .select('courseId');
+    if (assignments.length === 0) {
+      console.log('✅ [Cron] No certificate exams found for recent students.');
+      return { eligible: 0, sent: 0, failed: 0 };
+    }
+
+    const assignmentIds = assignments.map((assignment) => assignment._id);
+    const courseIdList = [...courseIds];
+    const [submissions, certificates] = await Promise.all([
+      AssignmentSubmission.find({
+        userId: { $in: candidateIds },
+        assignmentId: { $in: assignmentIds }
+      }).select('userId assignmentId passed submittedAt'),
+      Certificate.find({
+        userId: { $in: candidateIds },
+        courseId: { $in: courseIdList }
+      }).select('userId courseId')
+    ]);
+
+    const toId = (value) => String(value?._id || value || '');
+    const enrollmentByUserCourse = new Map();
+    enrollments.forEach((enrollment) => {
+      enrollmentByUserCourse.set(
+        `${toId(enrollment.user)}:${toId(enrollment.course)}`,
+        enrollment
+      );
+    });
+
+    const assignmentsByCourse = new Map();
+    assignments.forEach((assignment) => {
+      const courseId = toId(assignment.courseId);
+      const courseAssignments = assignmentsByCourse.get(courseId) || [];
+      courseAssignments.push(assignment);
+      assignmentsByCourse.set(courseId, courseAssignments);
+    });
+
+    const submissionsByUserAssignment = new Map();
+    submissions.forEach((submission) => {
+      const key = `${toId(submission.userId)}:${toId(submission.assignmentId)}`;
+      const entries = submissionsByUserAssignment.get(key) || [];
+      entries.push(submission);
+      submissionsByUserAssignment.set(key, entries);
+    });
+    submissionsByUserAssignment.forEach((entries) => {
+      entries.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+    });
+
+    const certificateKeys = new Set(
+      certificates.map((certificate) => `${toId(certificate.userId)}:${toId(certificate.courseId)}`)
+    );
+    const enrollmentsByUser = new Map();
+    enrollments.forEach((enrollment) => {
+      const userId = toId(enrollment.user);
+      const userEnrollments = enrollmentsByUser.get(userId) || [];
+      userEnrollments.push(enrollment);
+      enrollmentsByUser.set(userId, userEnrollments);
+    });
+
+    let eligibleCount = 0;
+    let sentCount = 0;
+    let failedCount = 0;
+
+    for (const student of candidates) {
+      const studentId = toId(student._id);
+      const studentCourses = new Map();
+
+      student.enrolledCourses.forEach((enrollment) => {
+        const courseId = toId(enrollment.courseId);
+        if (courseId) studentCourses.set(courseId, enrollment);
+      });
+      (enrollmentsByUser.get(studentId) || [])
+        .forEach((enrollment) => {
+          const courseId = toId(enrollment.course);
+          if (!studentCourses.has(courseId)) {
+            studentCourses.set(courseId, { courseId: enrollment.course, enrolledAt: enrollment.enrolledAt });
+          }
+        });
+
+      const reminders = [];
+      for (const [courseId, userEnrollment] of studentCourses) {
+        const storedEnrollment = enrollmentByUserCourse.get(`${studentId}:${courseId}`);
+        const enrolledAt = storedEnrollment?.enrolledAt || userEnrollment.enrolledAt || student.createdAt;
+        if (new Date(enrolledAt) > enrollmentCutoff) continue;
+
+        if (certificateKeys.has(`${studentId}:${courseId}`)) continue;
+
+        const courseAssignments = assignmentsByCourse.get(courseId) || [];
+        for (const assignment of courseAssignments) {
+          const submissionList = submissionsByUserAssignment.get(`${studentId}:${toId(assignment._id)}`) || [];
+          if (submissionList.some((submission) => submission.passed) || submissionList.length >= 3) continue;
+
+          const course = assignment.courseId;
+          reminders.push({
+            courseTitle: course?.certificateTitle || course?.title || 'your course',
+            courseId,
+            assignmentId: assignment._id,
+            hasAttempted: submissionList.length > 0,
+            remainingAttempts: 3 - submissionList.length
+          });
+        }
+      }
+
+      if (reminders.length === 0) continue;
+      eligibleCount++;
+
+      const claim = await User.findOneAndUpdate(
+        {
+          _id: student._id,
+          $and: [
+            {
+              $or: [
+                { certificateExamReminderSentAt: { $exists: false } },
+                { certificateExamReminderSentAt: null },
+                { certificateExamReminderSentAt: { $lte: sentCutoff } }
+              ]
+            },
+            {
+              $or: [
+                { certificateExamReminderClaimedAt: { $exists: false } },
+                { certificateExamReminderClaimedAt: null },
+                { certificateExamReminderClaimedAt: { $lte: staleClaimCutoff } }
+              ]
+            }
+          ]
+        },
+        { $set: { certificateExamReminderClaimedAt: now } },
+        { new: true }
+      ).select('_id');
+      if (!claim) continue;
+
+      try {
+        await sendCertificateExamReminderEmail(student.email, student.name, reminders);
+        await User.updateOne(
+          { _id: student._id, certificateExamReminderClaimedAt: now },
+          {
+            $set: { certificateExamReminderSentAt: now },
+            $inc: { certificateExamReminderCount: 1 },
+            $unset: { certificateExamReminderClaimedAt: '' }
+          }
+        );
+        sentCount++;
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      } catch (error) {
+        try {
+          await User.updateOne(
+            { _id: student._id, certificateExamReminderClaimedAt: now },
+            { $unset: { certificateExamReminderClaimedAt: '' } }
+          );
+        } catch (releaseError) {
+          console.error(`⚠️ [Cron] Failed releasing reminder claim for ${student.email}:`, releaseError.message);
+        }
+        failedCount++;
+        console.error(`⚠️ [Cron] Failed sending certificate exam reminder to ${student.email}:`, error.message);
+      }
+    }
+
+    console.log(`✅ [Cron] Certificate exam reminders complete. Eligible: ${eligibleCount}, Sent: ${sentCount}, Failed: ${failedCount}`);
+    return { eligible: eligibleCount, sent: sentCount, failed: failedCount };
+  } catch (error) {
+    console.error('❌ [Cron] Error running certificate exam reminder job:', error);
+    throw error;
+  }
+};
+
 /**
  * Initialize all scheduled cron jobs
- * 1. Weekly Enrollment Nudge: Runs every Monday at 10:00 AM ('0 10 * * 1')
- * 2. Weekly 3 Daily Live Classes Announcement: Runs every Monday at 11:00 AM ('0 11 * * 1')
+ * 1. Weekly Enrollment Nudge: Runs every Monday at 10:00 AM Asia/Kolkata time
+ * 2. Weekly Daily Live Classes Announcement: Runs every Monday at 11:00 AM Asia/Kolkata time
+ * 3. Weekly Certificate Exam Reminder: Runs every Monday at 12:00 PM Asia/Kolkata time
  */
 export const initCronJobs = () => {
-  // Weekly Enrollment Nudge: Every Monday at 10:00 AM
+  // Weekly Enrollment Nudge: Every Monday at 10:00 AM IST
   cron.schedule('0 10 * * 1', async () => {
     console.log('🔔 [Cron] Triggering scheduled Monday 10:00 AM Enrollment Nudge...');
     await runWeeklyEnrollmentNudgeJob();
-  });
+  }, { timezone: 'Asia/Kolkata' });
 
-  // Weekly 3 Daily Live Classes Announcement: Every Monday at 11:00 AM
+  // Weekly Daily Live Classes Announcement: Every Monday at 11:00 AM IST
   cron.schedule('0 11 * * 1', async () => {
     console.log('🔔 [Cron] Triggering scheduled Monday 11:00 AM Daily Live Classes Announcement...');
     await runWeeklyLiveClassesAnnouncementJob();
-  });
+  }, { timezone: 'Asia/Kolkata' });
 
-  console.log('📅 [Cron] Scheduled jobs initialized (Weekly Enrollment Nudge: Mondays 10 AM, Weekly 3 Live Classes: Mondays 11 AM)');
+  cron.schedule('0 12 * * 1', async () => {
+    console.log('🔔 [Cron] Triggering scheduled Monday 12:00 PM IST Certificate Exam Reminder...');
+    await runWeeklyCertificateExamReminderJob();
+  }, { timezone: 'Asia/Kolkata' });
+
+  console.log('📅 [Cron] Scheduled jobs initialized (Enrollment Nudge: Mondays 10 AM IST, Live Classes: Mondays 11 AM IST, Certificate Exam Reminder: Mondays 12 PM IST)');
 };

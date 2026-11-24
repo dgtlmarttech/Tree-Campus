@@ -81,6 +81,9 @@ const userSchema = new mongoose.Schema(
     enrollmentNudgeSent: { type: Boolean, default: false },
     enrollmentNudgeSentAt: { type: Date },
     nudgeCount: { type: Number, default: 0 },
+    certificateExamReminderSentAt: { type: Date },
+    certificateExamReminderClaimedAt: { type: Date },
+    certificateExamReminderCount: { type: Number, default: 0 },
     liveClassNotificationSentAt: { type: Date },
     liveClassNotificationCount: { type: Number, default: 0 },
 

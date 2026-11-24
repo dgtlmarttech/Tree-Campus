@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import DashboardLayout from '../../components/Layout/DashboardLayout';
 import api from '../../services/api';
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { FiUsers, FiBook, FiAward, FiPieChart, FiTrendingUp, FiLayers } from 'react-icons/fi';
+import { Area, AreaChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { FiUsers, FiBook, FiAward, FiTrendingUp, FiLayers } from 'react-icons/fi';
 
 const Analytics = () => {
   const [searchParams] = useSearchParams();
@@ -42,17 +42,26 @@ const Analytics = () => {
       setRefreshing(true);
       setError(null);
       
-      // Get overview and enrollment trend data concurrently
-      const [overviewRes, enrollmentRes] = await Promise.all([
+      // Get overview and trend data concurrently
+      const [overviewRes, enrollmentRes, registrationRes, certificateRes] = await Promise.all([
         api.get('/analytics/overview'),
-        api.get('/analytics/enrollments')
+        api.get('/analytics/enrollments'),
+        api.get('/analytics/registrations'),
+        api.get('/analytics/certificates')
       ]);
       
       const overviewData = overviewRes.data.data;
       const enrollmentTrend = enrollmentRes.data.data;
+      const registrationTrend = registrationRes.data.data;
+      const certificateTrend = certificateRes.data.data;
       
       // Generate analytics data using real trend data
-      const generatedData = processAnalyticsData(overviewData, enrollmentTrend);
+      const generatedData = processAnalyticsData(
+        overviewData,
+        enrollmentTrend,
+        registrationTrend,
+        certificateTrend
+      );
       setAnalyticsData(generatedData);
       setLastUpdated(new Date());
       
@@ -80,29 +89,13 @@ const Analytics = () => {
   };
 
   // Process analytics data from API responses
-  const processAnalyticsData = (overviewData, enrollmentTrendData) => {
+  const processAnalyticsData = (overviewData, enrollmentTrendData, registrationTrendData, certificateTrendData) => {
     if (!overviewData) return null;
 
     // Use enrollment trend directly from API
     const enrollmentTrend = enrollmentTrendData || [];
-
-    // Generate course category data from all courses
-    const courseCategories = overviewData.allCourses?.reduce((acc, course) => {
-      const category = course.category || 'General';
-      const existing = acc.find(item => item._id === category);
-      
-      if (existing) {
-        existing.count += 1;
-        existing.totalEnrollments += course.enrollmentCount || 0;
-      } else {
-        acc.push({
-          _id: category,
-          count: 1,
-          totalEnrollments: course.enrollmentCount || 0
-        });
-      }
-      return acc;
-    }, []) || [];
+    const registrationTrend = registrationTrendData || [];
+    const certificateTrend = certificateTrendData || [];
 
     // Generate enrollment by course data - Filter out 0 enrollments to clean up the graph
     const enrollmentByCourse = (overviewData.allCourses || [])
@@ -113,19 +106,14 @@ const Analytics = () => {
       }))
       .slice(0, 10); // Show top 10 to prevent overcrowding
 
-    // Calculate total enrollments from actual course data
-    const totalEnrollments = overviewData.stats?.totalEnrollments || 0;
-
     return {
       enrollmentTrend,
-      courseCategories,
+      registrationTrend,
+      certificateTrend,
       enrollmentByCourse,
-      overview: overviewData,
-      totalEnrollments
+      overview: overviewData
     };
   };
-
-  const COLORS = ['#6366f1', '#ec4899', '#14b8a6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
   if (loading) {
     return (
@@ -137,7 +125,17 @@ const Analytics = () => {
     );
   }
 
-  const { enrollmentTrend, courseCategories, enrollmentByCourse, totalEnrollments } = analyticsData || { enrollmentTrend: [], courseCategories: [], enrollmentByCourse: [], totalEnrollments: 0 };
+  const { enrollmentTrend, registrationTrend, certificateTrend, enrollmentByCourse } = analyticsData || { enrollmentTrend: [], registrationTrend: [], certificateTrend: [], enrollmentByCourse: [] };
+  const registrationsLast30Days = registrationTrend.reduce((total, item) => total + item.registrations, 0);
+  const registrationsToday = registrationTrend[registrationTrend.length - 1]?.registrations || 0;
+  const enrollmentsInPeriod = enrollmentTrend.reduce((total, item) => total + item.enrollments, 0);
+  const latestEnrollmentMonth = enrollmentTrend[enrollmentTrend.length - 1];
+  const certificatesInPeriod = certificateTrend.reduce((total, item) => total + item.certificates, 0);
+  const latestCertificateMonth = certificateTrend[certificateTrend.length - 1];
+  const formatRegistrationDate = (date) => {
+    const [year, month, day] = date.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  };
 
   if (!analyticsData) {
     return (
@@ -259,7 +257,7 @@ const Analytics = () => {
             </div>
             <div>
               <div className="text-2xl font-bold text-gray-900">
-                {analyticsData.overview?.stats?.categoriesCount || courseCategories.length}
+                {analyticsData.overview?.stats?.categoriesCount || 0}
               </div>
               <div className="text-sm text-gray-600">Categories</div>
             </div>
@@ -282,134 +280,306 @@ const Analytics = () => {
           </div>
         </div>
 
-        {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Enrollment Trend */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Enrollment Trend</h3>
-            {enrollmentTrend.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={enrollmentTrend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis 
-                    dataKey="month" 
-                    stroke="#6b7280"
-                    fontSize={12}
+        {/* Daily registrations */}
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div className="flex items-start gap-3">
+              <div className="rounded-xl bg-teal-50 p-3 text-teal-700">
+                <FiUsers className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Daily Registration Trend</h3>
+                <p className="mt-1 text-sm text-slate-500">New student sign-ups over the last 30 days</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <div className="rounded-xl bg-slate-50 px-4 py-2">
+                <p className="text-xs font-medium text-slate-500">Last 30 days</p>
+                <p className="mt-0.5 text-lg font-semibold text-slate-900">{registrationsLast30Days.toLocaleString()}</p>
+              </div>
+              <div className="rounded-xl bg-teal-50 px-4 py-2">
+                <p className="text-xs font-medium text-teal-700">Today</p>
+                <p className="mt-0.5 text-lg font-semibold text-teal-900">{registrationsToday.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+          <div className="px-3 pb-5 pt-4 sm:px-6">
+            {registrationTrend.length > 0 ? (
+              <ResponsiveContainer width="100%" height={320}>
+                <AreaChart data={registrationTrend} margin={{ top: 12, right: 12, left: -12, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="registrationTrendFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#0d9488" stopOpacity={0.24} />
+                      <stop offset="95%" stopColor="#0d9488" stopOpacity={0.01} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="#e2e8f0" />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={formatRegistrationDate}
+                    tick={{ fill: '#64748b', fontSize: 12 }}
+                    tickLine={false}
+                    axisLine={false}
+                    minTickGap={24}
+                    tickMargin={12}
                   />
-                  <YAxis 
-                    stroke="#6b7280"
-                    fontSize={12}
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fill: '#64748b', fontSize: 12 }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={42}
                   />
                   <Tooltip
+                    labelFormatter={(date) => formatRegistrationDate(date)}
+                    formatter={(value) => [value, 'Registrations']}
                     contentStyle={{
                       background: '#ffffff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 24px rgba(15, 23, 42, 0.1)',
+                      padding: '10px 14px'
                     }}
                   />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="enrollments" 
-                    stroke="#6366f1" 
+                  <Area
+                    type="monotone"
+                    dataKey="registrations"
+                    stroke="#0d9488"
                     strokeWidth={3}
-                    dot={{ fill: '#6366f1', strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6, fill: '#6366f1' }}
-                    name="Enrollments"
+                    fill="url(#registrationTrendFill)"
+                    activeDot={{ r: 5, fill: '#0d9488', stroke: '#ffffff', strokeWidth: 2 }}
+                    name="Registrations"
                   />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex justify-center items-center h-64 text-gray-500">
-                No enrollment data available
-              </div>
-            )}
-          </div>
-
-          {/* Course Categories */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Courses by Category</h3>
-            {courseCategories.length > 0 ? (
-              <div className="h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={courseCategories}
-                      cx="50%"
-                      cy="45%"
-                      labelLine={false}
-                      label={false} // Disable overlapping labels
-                      outerRadius={110}
-                      innerRadius={60}
-                      fill="#8884d8"
-                      dataKey="count"
-                      nameKey="_id"
-                      paddingAngle={5}
-                    >
-                      {courseCategories.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value, name) => [value, `Courses: ${name}`]}
-                      contentStyle={{
-                        background: '#ffffff',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                      }}
-                    />
-                    <Legend 
-                      verticalAlign="bottom" 
-                      height={80}
-                      layout="horizontal"
-                      wrapperStyle={{ paddingTop: '20px', fontSize: '12px' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="flex justify-center items-center h-64 text-gray-500">
-                No course category data available
+              <div className="flex h-64 items-center justify-center text-sm text-slate-500">
+                No registration data available
               </div>
             )}
           </div>
         </div>
 
+        {/* Existing enrollment and category charts sit below the registration trend */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Enrollment Trend */}
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Enrollment Trend</h3>
+                <p className="mt-1 text-sm text-slate-500">Monthly course enrollments over the last 6 months</p>
+              </div>
+              <div className="flex gap-3">
+                <div className="rounded-xl bg-indigo-50 px-3 py-2">
+                  <p className="text-xs font-medium text-indigo-600">6-month total</p>
+                  <p className="mt-0.5 text-base font-semibold text-indigo-900">{enrollmentsInPeriod.toLocaleString()}</p>
+                </div>
+                {latestEnrollmentMonth && (
+                  <div className="rounded-xl bg-slate-50 px-3 py-2">
+                    <p className="text-xs font-medium text-slate-500">{latestEnrollmentMonth.month}</p>
+                    <p className="mt-0.5 text-base font-semibold text-slate-900">
+                      {latestEnrollmentMonth.enrollments.toLocaleString()} enrollments
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="px-3 pb-5 pt-4 sm:px-5">
+              {enrollmentTrend.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={enrollmentTrend} margin={{ top: 12, right: 12, left: -12, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="enrollmentTrendFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#6366f1" stopOpacity={0.22} />
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0.01} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="#e2e8f0" />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fill: '#64748b', fontSize: 12 }}
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={10}
+                      minTickGap={18}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fill: '#64748b', fontSize: 12 }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={42}
+                    />
+                    <Tooltip
+                      formatter={(value) => [value.toLocaleString(), 'Enrollments']}
+                      contentStyle={{
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '12px',
+                        boxShadow: '0 10px 24px rgba(15, 23, 42, 0.1)',
+                        padding: '10px 14px'
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="enrollments"
+                      stroke="#6366f1"
+                      strokeWidth={3}
+                      fill="url(#enrollmentTrendFill)"
+                      activeDot={{ r: 5, fill: '#6366f1', stroke: '#ffffff', strokeWidth: 2 }}
+                      name="Enrollments"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-64 items-center justify-center text-sm text-slate-500">
+                  No enrollment data available
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Certificate issuance trend */}
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Certificates Issued</h3>
+                <p className="mt-1 text-sm text-slate-500">Monthly certificates issued over the last 6 months</p>
+              </div>
+              <div className="flex gap-3">
+                <div className="rounded-xl bg-amber-50 px-3 py-2">
+                  <p className="text-xs font-medium text-amber-700">6-month total</p>
+                  <p className="mt-0.5 text-base font-semibold text-amber-900">
+                    {certificatesInPeriod.toLocaleString()}
+                  </p>
+                </div>
+                {latestCertificateMonth && (
+                  <div className="rounded-xl bg-slate-50 px-3 py-2">
+                    <p className="text-xs font-medium text-slate-500">{latestCertificateMonth.month}</p>
+                    <p className="mt-0.5 text-base font-semibold text-slate-900">
+                      {latestCertificateMonth.certificates.toLocaleString()} certificates
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="px-3 pb-5 pt-4 sm:px-5">
+              {certificatesInPeriod > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={certificateTrend} margin={{ top: 12, right: 12, left: -12, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="certificateTrendFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.95} />
+                        <stop offset="100%" stopColor="#fbbf24" stopOpacity={0.72} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="#e2e8f0" />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fill: '#64748b', fontSize: 12 }}
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={10}
+                      minTickGap={18}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fill: '#64748b', fontSize: 12 }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={42}
+                    />
+                    <Tooltip
+                      formatter={(value) => [value.toLocaleString(), 'Certificates']}
+                      contentStyle={{
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '12px',
+                        boxShadow: '0 10px 24px rgba(15, 23, 42, 0.1)',
+                        padding: '10px 14px'
+                      }}
+                    />
+                    <Bar
+                      dataKey="certificates"
+                      fill="url(#certificateTrendFill)"
+                      radius={[7, 7, 0, 0]}
+                      maxBarSize={42}
+                      name="Certificates"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-64 items-center justify-center text-sm text-slate-500">
+                  No certificates issued in the last 6 months
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Enrollment by Course */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Enrollments by Course</h3>
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">Enrollments by Course</h3>
+              <p className="mt-1 text-sm text-slate-500">Compare enrollment numbers across popular courses</p>
+            </div>
+            {enrollmentByCourse.length > 0 && (
+              <span className="inline-flex w-fit items-center rounded-full bg-pink-50 px-3 py-1 text-xs font-semibold text-pink-700">
+                Top {enrollmentByCourse.length} courses
+              </span>
+            )}
+          </div>
+          <div className="px-3 py-5 sm:px-6">
           {enrollmentByCourse.length > 0 ? (
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={enrollmentByCourse}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis 
-                  dataKey="courseName" 
-                  stroke="#6b7280"
-                  fontSize={12}
-                  angle={-45}
-                  textAnchor="end"
-                  height={100}
+            <ResponsiveContainer width="100%" height={Math.max(340, enrollmentByCourse.length * 54)}>
+              <BarChart
+                data={enrollmentByCourse}
+                layout="vertical"
+                margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
+                barCategoryGap="28%"
+              >
+                <defs>
+                  <linearGradient id="courseEnrollmentFill" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#ec4899" />
+                    <stop offset="100%" stopColor="#a855f7" />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid horizontal={false} strokeDasharray="4 4" stroke="#e2e8f0" />
+                <XAxis
+                  type="number"
+                  allowDecimals={false}
+                  tickFormatter={(value) => value.toLocaleString()}
+                  tick={{ fill: '#64748b', fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={10}
                 />
-                <YAxis 
-                  stroke="#6b7280"
-                  fontSize={12}
+                <YAxis
+                  type="category"
+                  dataKey="courseName"
+                  width={180}
+                  tickFormatter={(name) => name.length > 24 ? `${name.slice(0, 22)}...` : name}
+                  tick={{ fill: '#475569', fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={false}
                 />
                 <Tooltip
+                  cursor={{ fill: '#f8fafc' }}
                   contentStyle={{
                     background: '#ffffff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 24px rgba(15, 23, 42, 0.1)',
+                    padding: '10px 14px'
                   }}
-                  formatter={(value) => [value, 'Enrollments']}
+                  formatter={(value) => [value.toLocaleString(), 'Enrollments']}
                 />
-                <Legend />
-                <Bar 
-                  dataKey="enrollments" 
-                  fill="#ec4899" 
-                  radius={[4, 4, 0, 0]}
+                <Bar
+                  dataKey="enrollments"
+                  fill="url(#courseEnrollmentFill)"
+                  radius={[0, 7, 7, 0]}
+                  maxBarSize={28}
                   name="Enrollments"
                 />
               </BarChart>
@@ -419,6 +589,7 @@ const Analytics = () => {
               No enrollment data by course available
             </div>
           )}
+          </div>
         </div>
       </div>
     </DashboardLayout>
