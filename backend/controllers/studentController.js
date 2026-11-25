@@ -414,7 +414,6 @@ export const getStudents = async (req, res) => {
 
     // --- Aggregate stats from Enrollment collection (source of truth) ---
     const filteredStudentUsers = await User.find(query).select('enrolledCourses');
-    let activeStudentsCount = 0;
     let totalEnrollments = 0;
 
     filteredStudentUsers.forEach(u => {
@@ -422,8 +421,16 @@ export const getStudents = async (req, res) => {
       const arrCount = u.enrolledCourses?.length || 0;
       const totalForUser = Math.max(dbCount, arrCount);
       totalEnrollments += totalForUser;
-      if (totalForUser > 0) activeStudentsCount++;
     });
+
+    // Active Students is a global platform metric. Filters, search and date range
+    // affect the table and Total Students metrics only.
+    const allStudentUsers = await User.find({ role: 'student' }).select('enrolledCourses');
+    const activeStudentsCount = allStudentUsers.filter((student) => {
+      const dbCount = enrollmentMap.get(String(student._id)) || 0;
+      const legacyCount = student.enrolledCourses?.length || 0;
+      return Math.max(dbCount, legacyCount) > 0;
+    }).length;
     const filteredStudentIds = filteredStudentUsers.map(student => student._id);
     const certificatesIssued = filteredStudentIds.length
       ? await Certificate.countDocuments({ userId: { $in: filteredStudentIds } })

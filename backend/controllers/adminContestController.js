@@ -138,7 +138,7 @@ export const bulkUploadCoupons = async (req, res) => {
     }
 };
 
-import { sendEmail } from '../utils/sendEmail.js';
+import { sendEmail } from '../utils/zeptoEmail.js';
 
 export const processExpiredExams = async (req, res) => {
     try {

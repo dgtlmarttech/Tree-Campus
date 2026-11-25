@@ -1,6 +1,6 @@
 import { validationResult } from 'express-validator';
 import SchoolRegistration from '../models/schoolRegistration.js';
-import { sendSchoolRegistrationConfirmation } from '../utils/sendEmail.js';
+import { sendSchoolRegistrationConfirmation } from '../utils/zeptoEmail.js';
 
 
 // @desc    Submit school registration

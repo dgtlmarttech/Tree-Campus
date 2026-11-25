@@ -271,6 +271,17 @@
       return colors[platform] || 'bg-gray-100 text-gray-800';
     };
 
+    const statusPriority = { scheduled: 0, live: 1, completed: 2, cancelled: 3 };
+    const sortedLiveClasses = [...liveClasses].sort((a, b) => {
+      const aStatus = getStatus(a);
+      const bStatus = getStatus(b);
+      const priorityDifference = statusPriority[aStatus] - statusPriority[bStatus];
+      if (priorityDifference !== 0) return priorityDifference;
+
+      const dateDifference = new Date(a.scheduledAt) - new Date(b.scheduledAt);
+      return statusPriority[aStatus] < 2 ? dateDifference : -dateDifference;
+    });
+
     if (loading) {
       return (
         <DashboardLayout>
@@ -345,7 +356,7 @@
 
           {/* Live Classes Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {liveClasses.map((liveClass) => {
+            {sortedLiveClasses.map((liveClass) => {
               const status = getStatus(liveClass);
               const isUpcoming = status === 'scheduled';
               const isLive = status === 'live';

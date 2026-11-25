@@ -1,7 +1,7 @@
 import ContestExam from '../models/ContestExam.js';
 import ContestCoupon from '../models/ContestCoupon.js';
 import User from '../models/User.js';
-import { sendEmail } from '../utils/sendEmail.js';
+import { sendEmail } from '../utils/zeptoEmail.js';
 
 // @desc    Get all exams (for student dashboard)
 // @route   GET /api/contest/exams

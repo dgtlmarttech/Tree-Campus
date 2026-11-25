@@ -5,7 +5,7 @@ import User from '../models/User.js';
 import Progress from '../models/Progress.js';
 import Course from '../models/Course.js';
 import Enrollment from '../models/Enrollment.js';
-import { sendAssignmentResultsEmail } from '../utils/sendEmail.js';
+import { sendAssignmentResultsEmail } from '../utils/zeptoEmail.js';
 
 // @desc    Create assignment (admin only)
 // @route   POST /api/assignments/course/:courseId

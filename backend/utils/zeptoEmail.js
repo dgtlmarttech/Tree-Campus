@@ -900,6 +900,283 @@ export const sendCertificateExamReminderEmail = async (
   });
 };
 
+export const sendAssignmentResultsEmail = async (email, name, results) => {
+  if (!email) {
+    console.warn('⚠️ [ZeptoMail] sendAssignmentResultsEmail called without email address');
+    return null;
+  }
+
+  const safeName = escapeEmailHtml(name?.trim() || 'Learner');
+  const safeCourseTitle = escapeEmailHtml(results?.courseTitle || 'your course');
+  const score = Math.max(0, Number(results?.score) || 0);
+  const passingScore = results?.passingScore == null ? null : Math.max(0, Number(results.passingScore) || 0);
+  const isPassed = Boolean(results?.passed);
+  const certificateBaseUrl = COURSES_URL.replace(/\/+$/, '');
+  const certificateUrl = `${certificateBaseUrl}/certificate`;
+  const statusColor = isPassed ? '#166534' : '#991B1B';
+  const statusBackground = isPassed ? '#DCFCE7' : '#FEE2E2';
+  const certificateSection = isPassed && results?.certificateId
+    ? `
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin:20px auto 4px;">
+        <tr>
+          <td align="center" bgcolor="#E85D04" style="border-radius:50px;background-color:#E85D04;">
+            <a href="${escapeEmailHtml(certificateUrl)}" target="_blank" style="display:inline-block;padding:13px 26px;border:1px solid #E85D04;border-radius:50px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;line-height:1.2;">View and download certificate</a>
+          </td>
+        </tr>
+      </table>`
+    : '';
+  const resultMessage = isPassed
+    ? 'Congratulations! You have successfully passed the assignment and earned your certificate.'
+    : 'You can try again after reviewing the course material. Your remaining attempts will appear on the exam page.';
+
+  const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assignment Results | Treecampus</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>body,table,td,p,a,h1,h2{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif!important;}</style>
+</head>
+<body style="margin:0;padding:0;background-color:#f3f6f4;color:#1E293B;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+  <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color:#f3f6f4;padding:28px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" border="0" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.06);">
+          <tr>
+            <td align="center" style="padding:28px 24px;background:linear-gradient(135deg,#1B4332 0%,#2D6A4F 100%);background-color:#1B4332;">
+              <img src="https://res.cloudinary.com/dbbll23jz/image/upload/v1765170258/tree_logo_ek4uw3.png" alt="Treecampus" width="56" height="56" style="display:block;width:56px;height:56px;object-fit:contain;background:#ffffff;border-radius:12px;padding:5px;margin:0 auto 12px;">
+              <p style="margin:0 0 7px;color:#D8F3DC;font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;">Assignment update</p>
+              <h1 style="margin:0;color:#ffffff;font-size:26px;line-height:1.3;font-weight:700;">Your exam result</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:30px 28px 32px;">
+              <p style="margin:0 0 12px;color:#1B4332;font-size:20px;font-weight:700;">Hi ${safeName},</p>
+              <p style="margin:0 0 20px;color:#334155;font-size:15px;line-height:1.7;">Here are your results for <strong>${safeCourseTitle}</strong>.</p>
+              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="margin:0 0 18px;background-color:#F8FAF9;border:1px solid #E2E8F0;border-radius:14px;">
+                <tr>
+                  <td width="50%" style="padding:18px;text-align:center;border-right:1px solid #E2E8F0;">
+                    <p style="margin:0 0 7px;color:#64748B;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;">Status</p>
+                    <span style="display:inline-block;padding:7px 12px;border-radius:999px;background-color:${statusBackground};color:${statusColor};font-size:13px;font-weight:700;">${isPassed ? 'Passed' : 'Needs improvement'}</span>
+                  </td>
+                  <td width="50%" style="padding:18px;text-align:center;">
+                    <p style="margin:0 0 7px;color:#64748B;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;">Your score</p>
+                    <p style="margin:0;color:#1B4332;font-size:24px;font-weight:800;">${score}%</p>
+                  </td>
+                </tr>
+              </table>
+              ${passingScore !== null ? `<p style="margin:0 0 18px;color:#334155;font-size:14px;text-align:center;">Passing score: <strong>${passingScore}%</strong></p>` : ''}
+              <p style="margin:0;color:#334155;font-size:15px;line-height:1.7;text-align:center;">${resultMessage}</p>
+              ${certificateSection}
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:20px 24px;background-color:#1B4332;color:#D8F3DC;font-size:12px;line-height:1.6;">
+              <p style="margin:0 0 4px;color:#ffffff;font-size:14px;font-weight:700;">Treecampus</p>
+              <p style="margin:0;">Democratizing quality education at no cost for every learner.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  return sendZeptoMail({
+    toEmail: email,
+    toName: name?.trim() || 'Treecampus Learner',
+    subject: `Assignment result: ${results?.courseTitle || 'Your course'} | Treecampus`,
+    htmlContent
+  });
+};
+
+const generateSimpleZeptoEmailHtml = ({ name, title, intro, content, contentHtml, ctaLabel, ctaUrl }) => {
+  const safeName = escapeEmailHtml(name?.trim() || 'Learner');
+  const safeTitle = escapeEmailHtml(title);
+  const safeIntro = escapeEmailHtml(intro);
+  const safeContent = escapeEmailHtml(content);
+  const safeCtaLabel = escapeEmailHtml(ctaLabel);
+  const safeCtaUrl = ctaUrl ? escapeEmailHtml(ctaUrl) : '';
+  const renderedContent = contentHtml || (safeContent ? `<p style="margin:0 0 20px;color:#334155;font-size:15px;line-height:1.7;">${safeContent}</p>` : '');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${safeTitle} | Treecampus</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0;padding:28px 12px;background:#f3f6f4;color:#1E293B;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+  <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0">
+    <tr><td align="center">
+      <table role="presentation" width="600" border="0" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(15,23,42,.06);">
+        <tr><td align="center" style="padding:26px 24px;background:#1B4332;background-image:linear-gradient(135deg,#1B4332,#2D6A4F);">
+          <img src="https://res.cloudinary.com/dbbll23jz/image/upload/v1765170258/tree_logo_ek4uw3.png" alt="Treecampus" width="56" height="56" style="display:block;width:56px;height:56px;background:#fff;border-radius:12px;padding:5px;margin:0 auto 12px;">
+          <h1 style="margin:0;color:#fff;font-size:24px;line-height:1.3;">${safeTitle}</h1>
+        </td></tr>
+        <tr><td style="padding:28px;">
+          <p style="margin:0 0 14px;color:#1B4332;font-size:20px;font-weight:700;">Hi ${safeName},</p>
+          <p style="margin:0 0 18px;color:#334155;font-size:15px;line-height:1.7;">${safeIntro}</p>
+          ${renderedContent}
+          ${safeCtaUrl ? `<table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin:20px auto 4px;"><tr><td align="center" bgcolor="#E85D04" style="border-radius:50px;background:#E85D04;"><a href="${safeCtaUrl}" target="_blank" style="display:inline-block;padding:13px 26px;border:1px solid #E85D04;border-radius:50px;color:#fff;text-decoration:none;font-size:14px;font-weight:700;">${safeCtaLabel}</a></td></tr></table>` : ''}
+          <p style="margin:24px 0 0;color:#475569;font-size:13px;line-height:1.6;">Best regards,<br><strong style="color:#1B4332;">Treecampus Team</strong></p>
+        </td></tr>
+        <tr><td align="center" style="padding:18px 24px;background:#1B4332;color:#D8F3DC;font-size:12px;line-height:1.6;">
+          <p style="margin:0 0 4px;color:#fff;font-size:14px;font-weight:700;">Treecampus</p>
+          <p style="margin:0;">Democratizing quality education at no cost for every learner.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+};
+
+export const sendOTPEmail = async (email, name, otp, subject = 'Your OTP Code') => {
+  const htmlContent = generateSimpleZeptoEmailHtml({
+    name,
+    title: 'Verify your account',
+    intro: 'Use the following OTP to continue. This code expires in 10 minutes.',
+    contentHtml: `<div style="margin:4px 0 20px;"><span style="display:inline-block;padding:14px 22px;border-radius:10px;background:#F0F4F2;color:#1B4332;font-size:24px;font-weight:800;letter-spacing:5px;">${escapeEmailHtml(otp)}</span></div>`
+  });
+  return sendZeptoMail({ toEmail: email, toName: name, subject: subject, htmlContent });
+};
+
+export const sendPasswordResetEmail = async (email, name, resetUrl) => {
+  const htmlContent = generateSimpleZeptoEmailHtml({
+    name,
+    title: 'Password reset request',
+    intro: 'You requested to reset your password. Use the button below to set a new one.',
+    content: 'This link expires in 1 hour. If you did not request this, you can safely ignore this email.',
+    ctaLabel: 'Reset Password',
+    ctaUrl: resetUrl
+  });
+  return sendZeptoMail({ toEmail: email, toName: name, subject: 'Password Reset Request | Treecampus', htmlContent });
+};
+
+export const sendVolunteerConfirmation = async (email, name) => sendZeptoMail({
+  toEmail: email,
+  toName: name,
+  subject: 'Volunteer Registration Confirmation | Treecampus',
+  htmlContent: generateSimpleZeptoEmailHtml({
+    name,
+    title: 'Volunteer registration received',
+    intro: 'Thank you for registering as a volunteer with Treecampus.',
+    content: 'We have received your application and will contact you shortly.'
+  })
+});
+
+export const sendSchoolRegistrationConfirmation = async (email, name) => sendZeptoMail({
+  toEmail: email,
+  toName: name,
+  subject: 'School Registration Confirmation | Treecampus',
+  htmlContent: generateSimpleZeptoEmailHtml({
+    name,
+    title: 'School registration received',
+    intro: 'Thank you for registering your school with Treecampus.',
+    content: 'We have received your registration and will review it shortly.'
+  })
+});
+
+export const sendAccountDeletionConfirmation = async (email, name) => sendZeptoMail({
+  toEmail: email,
+  toName: name,
+  subject: 'Account Deletion Request | Treecampus',
+  htmlContent: generateSimpleZeptoEmailHtml({
+    name,
+    title: 'Account deletion request',
+    intro: 'We have received your account deletion request.',
+    content: 'Your account will be processed within 30 days as per our policy.'
+  })
+});
+
+export const sendTeacherApplicationConfirmation = async (email, name) => sendZeptoMail({
+  toEmail: email,
+  toName: name,
+  subject: 'Teacher Application Received | Treecampus',
+  htmlContent: generateSimpleZeptoEmailHtml({
+    name,
+    title: 'Teacher application received',
+    intro: 'Thank you for applying to be an online educator at Treecampus.',
+    content: 'Your application and demo materials are under review. We will notify you when there is an update.'
+  })
+});
+
+export const sendTeacherStatusUpdate = async (email, name, status) => {
+  const approved = status === 'approved';
+  return sendZeptoMail({
+    toEmail: email,
+    toName: name,
+    subject: `Teacher Application ${approved ? 'Approved' : 'Status Update'} | Treecampus`,
+    htmlContent: generateSimpleZeptoEmailHtml({
+      name,
+      title: `Application ${approved ? 'approved' : 'status update'}`,
+      intro: approved
+        ? 'We are pleased to inform you that your application to join the Treecampus teaching faculty has been approved!'
+        : 'Thank you for your interest. After careful review, we are unable to move forward with your application at this time.',
+      content: approved
+        ? 'Our team will contact you with onboarding details, schedule and teaching requirements.'
+        : 'We appreciate your time and wish you all the best in your future endeavors.'
+    })
+  });
+};
+
+export const sendEmail = async (toEmail, toName, subject, type, context = {}) => {
+  if (!toEmail) {
+    console.warn('⚠️ [ZeptoMail] sendEmail called without email address');
+    return null;
+  }
+
+  if (type === 'coupon') {
+    const safeName = escapeEmailHtml(toName?.trim() || 'Learner');
+    const safeCoupon = escapeEmailHtml(context.coupon);
+    const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Treecampus Reward</title></head>
+<body style="margin:0;padding:28px 12px;background:#f3f6f4;color:#1E293B;font-family:Arial,sans-serif;">
+  <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0"><tr><td align="center">
+    <table role="presentation" width="600" border="0" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #E2E8F0;">
+      <tr><td align="center" style="padding:28px 24px;background:#1B4332;background-image:linear-gradient(135deg,#1B4332,#2D6A4F);">
+        <img src="https://res.cloudinary.com/dbbll23jz/image/upload/v1765170258/tree_logo_ek4uw3.png" alt="Treecampus" width="56" height="56" style="display:block;width:56px;height:56px;background:#fff;border-radius:12px;padding:5px;margin:0 auto 12px;">
+        <h1 style="margin:0;color:#fff;font-size:24px;">Congratulations, ${safeName}!</h1>
+      </td></tr>
+      <tr><td align="center" style="padding:28px;">
+        <p style="margin:0 0 18px;color:#334155;font-size:16px;line-height:1.7;">You won an exclusive SastaSundar discount coupon.</p>
+        <p style="margin:0 0 8px;color:#64748B;font-size:12px;font-weight:700;text-transform:uppercase;">Your coupon code</p>
+        <div style="display:inline-block;margin:0 0 20px;padding:14px 24px;background:#F0F4F2;border:1px solid #C8D6CF;border-radius:10px;color:#1B4332;font-size:22px;font-weight:800;letter-spacing:1px;">${safeCoupon}</div>
+        <br>
+        <a href="https://www.sastasundar.com/" target="_blank" style="display:inline-block;margin:8px;padding:12px 22px;border-radius:50px;background:#E85D04;color:#fff;text-decoration:none;font-size:14px;font-weight:700;">Redeem Now</a>
+        <p style="margin:18px 0 0;color:#475569;font-size:12px;line-height:1.6;">This coupon is for one-time use only, is non-transferable, and is subject to applicable terms and conditions.</p>
+      </td></tr>
+    </table>
+  </td></tr></table>
+</body>
+</html>`;
+    return sendZeptoMail({ toEmail, toName, subject, htmlContent });
+  }
+
+  if (type === 'reset') {
+    return sendPasswordResetEmail(toEmail, toName, context.resetUrl);
+  }
+
+  if (type === 'verification') {
+    const htmlContent = generateSimpleZeptoEmailHtml({
+      name: toName,
+      title: 'Verify your email address',
+      intro: 'Thank you for registering with Treecampus.',
+      content: 'Please verify your email address to continue.',
+      ctaLabel: 'Verify Email Address',
+      ctaUrl: context.verifyUrl
+    });
+    return sendZeptoMail({ toEmail, toName, subject, htmlContent });
+  }
+
+  throw new Error(`Unsupported ZeptoMail email type: ${type}`);
+};
+
 /**
  * Generate 3 Daily Live Classes Announcement HTML Email (English, No-Cost)
  * @param {string} toName - User's name

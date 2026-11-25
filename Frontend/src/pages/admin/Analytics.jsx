@@ -369,15 +369,15 @@ const Analytics = () => {
                 <h3 className="text-lg font-semibold text-slate-900">Enrollment Trend</h3>
                 <p className="mt-1 text-sm text-slate-500">Monthly course enrollments over the last 6 months</p>
               </div>
-              <div className="flex gap-3">
-                <div className="rounded-xl bg-indigo-50 px-3 py-2">
-                  <p className="text-xs font-medium text-indigo-600">6-month total</p>
-                  <p className="mt-0.5 text-base font-semibold text-indigo-900">{enrollmentsInPeriod.toLocaleString()}</p>
+              <div className="flex min-w-0 flex-wrap gap-3">
+                <div className="shrink-0 rounded-xl bg-indigo-50 px-3 py-2">
+                  <p className="whitespace-nowrap text-xs font-medium text-indigo-600">6-month total</p>
+                  <p className="mt-0.5 whitespace-nowrap text-base font-semibold text-indigo-900">{enrollmentsInPeriod.toLocaleString()}</p>
                 </div>
                 {latestEnrollmentMonth && (
-                  <div className="rounded-xl bg-slate-50 px-3 py-2">
-                    <p className="text-xs font-medium text-slate-500">{latestEnrollmentMonth.month}</p>
-                    <p className="mt-0.5 text-base font-semibold text-slate-900">
+                  <div className="shrink-0 rounded-xl bg-slate-50 px-3 py-2">
+                    <p className="whitespace-nowrap text-xs font-medium text-slate-500">{latestEnrollmentMonth.month}</p>
+                    <p className="mt-0.5 whitespace-nowrap text-base font-semibold text-slate-900">
                       {latestEnrollmentMonth.enrollments.toLocaleString()} enrollments
                     </p>
                   </div>
@@ -446,17 +446,17 @@ const Analytics = () => {
                 <h3 className="text-lg font-semibold text-slate-900">Certificates Issued</h3>
                 <p className="mt-1 text-sm text-slate-500">Monthly certificates issued over the last 6 months</p>
               </div>
-              <div className="flex gap-3">
-                <div className="rounded-xl bg-amber-50 px-3 py-2">
-                  <p className="text-xs font-medium text-amber-700">6-month total</p>
-                  <p className="mt-0.5 text-base font-semibold text-amber-900">
+              <div className="flex min-w-0 flex-wrap gap-3">
+                <div className="shrink-0 rounded-xl bg-amber-50 px-3 py-2">
+                  <p className="whitespace-nowrap text-xs font-medium text-amber-700">6-month total</p>
+                  <p className="mt-0.5 whitespace-nowrap text-base font-semibold text-amber-900">
                     {certificatesInPeriod.toLocaleString()}
                   </p>
                 </div>
                 {latestCertificateMonth && (
-                  <div className="rounded-xl bg-slate-50 px-3 py-2">
-                    <p className="text-xs font-medium text-slate-500">{latestCertificateMonth.month}</p>
-                    <p className="mt-0.5 text-base font-semibold text-slate-900">
+                  <div className="shrink-0 rounded-xl bg-slate-50 px-3 py-2">
+                    <p className="whitespace-nowrap text-xs font-medium text-slate-500">{latestCertificateMonth.month}</p>
+                    <p className="mt-0.5 whitespace-nowrap text-base font-semibold text-slate-900">
                       {latestCertificateMonth.certificates.toLocaleString()} certificates
                     </p>
                   </div>

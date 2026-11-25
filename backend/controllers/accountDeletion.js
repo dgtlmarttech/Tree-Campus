@@ -1,7 +1,7 @@
 import { validationResult } from 'express-validator';
 import crypto from 'crypto';
 import AccountDeletion from '../models/AccountDeletion.js';
-import { sendAccountDeletionConfirmation } from '../utils/sendEmail.js';
+import { sendAccountDeletionConfirmation } from '../utils/zeptoEmail.js';
 
 // @desc    Submit account deletion requests
 // @route   POST /api/account-deletion-request

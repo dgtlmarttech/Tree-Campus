@@ -6,7 +6,7 @@ import { sendBlackSMSOTP } from '../utils/blackSMS.js';
 import {
   sendTeacherApplicationConfirmation,
   sendTeacherStatusUpdate
-} from '../utils/sendEmail.js';
+} from '../utils/zeptoEmail.js';
 
 /**
  * Helper to upload a buffer to Cloudinary

@@ -1,6 +1,6 @@
 import { validationResult } from 'express-validator';
 import Volunteer from '../models/Volunteer.js';
-import { sendVolunteerConfirmation } from '../utils/sendEmail.js';
+import { sendVolunteerConfirmation } from '../utils/zeptoEmail.js';
 
 // @desc    Submit volunteer application
 // @route   POST /api/volunteer

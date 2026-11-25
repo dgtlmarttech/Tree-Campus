@@ -3,7 +3,7 @@ import { generateTokens } from '../utils/generateToken.js';
 import { verifyRefreshToken } from '../middleware/auth.js';
 // import * as messageCentral from '../utils/messageCentral.js'; // Commented out - replaced by Black SMS
 import { sendBlackSMSOTP } from '../utils/blackSMS.js';
-import { sendOTPEmail } from '../utils/sendEmail.js';
+import { sendOTPEmail } from '../utils/zeptoEmail.js';
 import { sendWelcomeEmail } from '../utils/zeptoEmail.js';
 import bcrypt from 'bcryptjs';
 import fs from 'fs';
